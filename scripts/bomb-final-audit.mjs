@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import {setup} from './bomb-fixture.mjs';
+let checks=0;const check=(v,label)=>{assert.ok(v,label);checks++;};
+const run=(g,seconds,fps=30)=>{let left=seconds;while(left>1e-9){const dt=Math.min(1/fps,left);g.update(dt);left-=dt;}};
+function seeded(seed=884){Math.random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};}
+const random=Math.random;
+for(const fps of [15,30,60]){
+ const {game,world,controls}=setup();game.start();run(game,15,fps);Object.assign(game.player,{...world.sites[1],vx:0,vz:0});
+ controls.interactHeld=true;run(game,2.9,fps);game.pause();check(!game.player.interaction,`pause cancels use ${fps}`);game.pause();controls.interactHeld=true;run(game,.2,fps);check(game.state.phase==='active',`pause cannot carry old progress ${fps}`);
+ controls.interactHeld=false;run(game,.1,fps);controls.interactHeld=true;game.state.phaseEndsAt=game.state.time+2.999;run(game,3,fps);check(game.state.roundResult?.reason==='交战时间耗尽',`plant 1ms late invalid ${fps}`);
+ const second=setup();second.game.start('defend');run(second.game,15,fps);Object.assign(second.game.player,{...second.world.sites[1],vx:0,vz:0});Object.assign(second.game.state,{phase:'planted',bomb:{planted:true,siteId:'B',x:second.game.player.x,y:0,z:second.game.player.z,carrierId:null,explodesAt:second.game.state.time+4.999},phaseEndsAt:second.game.state.time+4.999});second.controls.interactHeld=true;run(second.game,5,fps);check(second.game.state.roundResult?.reason==='炸弹爆炸',`defuse 1ms late invalid ${fps}`);
+}
+{
+ const {game}=setup();game.start();game.player.money=8000;game.buy(3);game.buy('armor');run(game,15);const item={...game.player.equipment[1]};game.down(game.player,game.actors[5]);const friend=game.actors[1];Object.assign(friend,{x:game.player.x,y:game.player.y,z:game.player.z});check(game.interactActor(friend),'bomb pickup first');check(game.state.bomb.carrierId===friend.id,'teammate carrier after pickup');check(game.interactActor(friend),'gun pickup next');check(friend.equipment[1].id===3,'primary drop weapon identity');check(friend.equipment[1].ammo===item.ammo&&friend.equipment[1].reserve===item.reserve,'drop retains ammunition');game.finishRound(0,'audit');run(game,4);check(!game.player.equipment[1]&&game.player.armor===0,'dead player loses gun and armor');check(friend.equipment[1].id===3,'survivor keeps picked gun');check(game.player.money<=8000&&game.actors.every(a=>a.money<=8000),'money cap all actors');
+}
+{
+ const {game}=setup(false);game.start();run(game,15);for(const a of game.actors)if(a.id!==1&&a.id!==5)a.alive=false;const a=game.actors[1],enemy=game.actors[5];Object.assign(a,{x:-18,y:0,z:10});Object.assign(enemy,{x:-18,y:0,z:2,vx:1,vz:0});game.ai.decide(a,16);check(a.visibleTargetId===enemy.id&&a.lastSeen.x===-18&&a.lastSeen.z===2,'AI sees exposed opponent');const seen={...a.lastSeen};Object.assign(enemy,{x:18,z:-20});game.ai.decide(a,16.25);check(a.visibleTargetId===null,'AI loses obstructed opponent');check(a.lastSeen.x===seen.x&&a.lastSeen.z===seen.z,'AI memory copies last visible position');game.ai.decide(a,19.1);check(a.lastSeen===null,'AI observation expires after 3 seconds');
+}
+{
+ seeded();const {game}=setup(false);game.start();run(game,15);game.down(game.player);let taken=false,planted=false,result=null;for(let t=0;t<100&&game.state.round===1;t+=1/30){game.update(1/30);if(game.state.bomb?.carrierId!=null&&game.state.bomb.carrierId!==0)taken=true;if(game.state.phase==='planted')planted=true;if(game.state.roundResult)result={...game.state.roundResult};}check(taken,'autonomous AI recovers player bomb');check(planted,'autonomous AI completes plant');check(result!==null,'autonomous AI finishes round');check(game.state.round===2,'next round respawns without player action');check(game.player.alive,'unified next round respawn');
+}
+{
+ seeded(717);const {game}=setup(false);game.start('defend');let half=false;for(let t=0;t<1200&&game.state.mode==='playing';t+=1/15){game.update(1/15);if(game.state.round===5)half=game.state.attackTeam===0;}check(half,'autonomous match swaps initial defenders after round4');check(game.state.mode==='match_end','autonomous full match terminates');check(game.state.scores.some(s=>s===5),'autonomous match firstto5');check(game.state.round<=9,'autonomous match at most9');
+}
+{
+ const {game,world}=setup(false);game.start();run(game,15);game.actors.forEach(a=>a.alive=false);const defender=game.actors[5];Object.assign(defender,{alive:true,hp:100,...world.sites[1]});game.state.phase='planted';game.state.bomb={planted:true,siteId:'B',x:defender.x,y:0,z:defender.z,explodesAt:game.state.time+7,carrierId:null};game.state.phaseEndsAt=game.state.bomb.explodesAt;run(game,5.1);check(game.state.roundResult?.reason==='炸弹已拆除','AI defuses after attack wipe');check(game.state.roundResult?.winner===1,'AI autonomous defuse team winner');check(defender.money===3500,'AI defuse operator reward and win reward');
+}
+{
+ const {game,world,controls}=setup();game.start();run(game,15.01);Object.assign(game.player,{x:world.sites[1].x,y:0,z:world.sites[1].z,vx:0,vz:0});controls.interactHeld=true;run(game,1);check(game.player.interaction?.progress>.3,'use underway before jump');game.action('jump');run(game,.1);check(!game.player.interaction,'jump cancels plant progress');check(game.player.grounded===false,'jump really enters air');run(game,.3);check(!game.player.interaction,'cannot plant while airborne');
+}
+if(process.argv.includes('--browser')){
+ const {chromium}=await import('playwright');const browser=await chromium.connectOverCDP('http://127.0.0.1:9333');const context=await browser.newContext({viewport:{width:1280,height:720}});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{await page.goto('http://127.0.0.1:5180/?test');await page.waitForFunction(()=>window.__gameTest);await page.click('#start-btn');await page.click('#buy-close');await page.evaluate(()=>{advanceTime(15010);const {game,characterDisplay}=__gameTest;game.ai.update=()=>{};const player=game.player,friend=game.actors[1];Object.assign(player,{x:-18,y:0,z:10,vx:0,vz:0});Object.assign(friend,{x:-18,y:0,z:8,vx:0,vz:0});game.camera.state.yaw=game.camera.state.pitch=0;characterDisplay.poseBean(friend,game.state.time,true);game.camera.update(0,player);});await page.keyboard.down('KeyW');await page.evaluate(()=>advanceTime(1000));await page.keyboard.up('KeyW');const metrics=await page.evaluate(()=>{const {game,g}=__gameTest,p=game.player,f=game.actors[1];return {distance:Math.hypot(p.x-f.x,p.z-f.z),minimum:p.radius+f.radius,z:p.z,cameraGap:Math.hypot(g.camera.position.x-f.x,g.camera.position.z-f.z)};});check(metrics.z<10,'real keyboard moves toward teammate');check(metrics.distance+1e-5>=metrics.minimum,'real keyboard cannot enter teammate body');check(metrics.cameraGap>.53,'first-person camera remains outside teammate capsule');check(errors.length===0,'independent browser has no page errors');}
+ finally{await context.close();await browser.close();}
+}
+Math.random=random;console.log(`PASS ${checks} independent final audit checks`);
