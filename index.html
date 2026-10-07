@@ -11,7 +11,7 @@
  <div class="match-strip"><small id="round-label">第 1 回合</small><strong id="score">0 : 0</strong><span id="timer">00:15</span><small id="alive-count">我方 5 · 对方 5</small></div>
  <div class="objective-strip"><span id="objective">购买装备，选择进攻路线</span></div>
  <div class="tools"><button id="buy-open" title="购买装备（B）">购买</button><button id="pause" title="暂停与设置">Ⅱ</button><button id="full" title="全屏">⛶</button></div>
- <div id="map" aria-label="小地图：自己、队友与包点"></div><div class="map-key">▲ 自己　● 队友　A / B 包点</div>
+ <div id="map" aria-label="小地图：自己、队友与包点"></div><div class="map-key"><strong id="map-name">糖果小镇</strong><span>▲ 自己　● 队友　A / B 包点</span></div>
  <div id="crosshair"><i></i><i></i><i></i><i></i><b></b></div><div id="scope-overlay" class="hidden"><div class="scope-lens"></div></div><div id="hitmarker">×</div><div id="hurt"></div>
  <div id="toast" role="status"></div>
  <div id="interact-hint"></div><div id="interaction-progress" role="progressbar" aria-label="互动进度"></div>
@@ -31,9 +31,30 @@
  </div>
 </div>
 <section id="lobby" class="screen">
- <div class="lobby-copy"><div class="eyebrow">BEAN FRONTIER / DEMOLITION</div><h1>豆豆火力岛<span>爆破行动</span></h1><p>糖果竞技场，五对五短局。<br>推进、守点、安包。先拿下五回合。</p>
- <div class="side-picker" aria-label="选择开局阵营"><button id="side-attack" class="active" aria-pressed="true">进攻方<span>携带炸弹 · 突破包点</span></button><button id="side-defend" aria-pressed="false">防守方<span>保护包点 · 回防拆包</span></button></div>
- <button id="start-btn" class="primary">开始对局 <span>↗</span></button><div class="lobby-details">第一人称 · 5v5 AI · 单人离线可玩</div><button id="help-btn" class="text-button">玩法与操作 ↗</button></div><div class="lobby-stamp">5 v 5<br><span>SMALL BEANS.<br>BIG PLAYS.</span></div>
+ <div class="lobby-layout">
+  <header class="lobby-copy"><div class="eyebrow">BEAN FRONTIER / DEMOLITION</div><h1>豆豆火力岛<span>爆破行动</span></h1><p>三张糖果战场，五对五短局。<br>走侧路、抢中路、守住包点。先拿下五回合。</p><div class="lobby-details">第一人称 · 5v5 AI · 单人离线可玩</div></header>
+  <div class="map-picker" role="group" aria-label="选择本场地图">
+   <div class="map-picker-heading"><span>选择战场</span><small>整场对局固定地图</small></div>
+   <button id="map-town" class="map-card active" data-map="town" aria-pressed="true">
+    <svg viewBox="0 0 240 102" aria-hidden="true"><rect width="240" height="102" rx="8" fill="#8acac1"/><path d="M0 54H240M120 0V102M38 102V24H202V102" stroke="#f2dfb0" stroke-width="13" fill="none"/><g fill="#f593b0" stroke="#ad647a" stroke-width="2"><rect x="47" y="5" width="48" height="35" rx="4"/><rect x="47" y="70" width="47" height="28" rx="4"/></g><g fill="#f5bf83" stroke="#af895f" stroke-width="2"><rect x="145" y="5" width="48" height="35" rx="4"/><rect x="145" y="70" width="47" height="28" rx="4"/></g><circle cx="28" cy="50" r="13" fill="#ffdf6b"/><circle cx="213" cy="50" r="13" fill="#cbe9f3"/><g fill="#21484b" text-anchor="middle" font-size="14" font-weight="900"><text x="28" y="55">A</text><text x="213" y="55">B</text></g></svg>
+    <span class="map-card-title">糖果小镇<small>街巷 / 庭院</small></span><span class="map-card-copy">穿过商店，沿后巷绕进包点。</span>
+   </button>
+   <button id="map-factory" class="map-card" data-map="factory" aria-pressed="false">
+    <svg viewBox="0 0 240 102" aria-hidden="true"><rect width="240" height="102" rx="8" fill="#bacdc2"/><path d="M0 51H240M44 0V102M196 0V102" stroke="#f3d793" stroke-width="12"/><rect x="62" y="8" width="116" height="85" rx="4" fill="#668b89"/><path d="M65 51H177M120 10V93" stroke="#bcded3" stroke-width="12"/><g fill="#f8b381"><rect x="75" y="19" width="25" height="20" rx="2"/><rect x="137" y="63" width="25" height="19" rx="2"/></g><path d="M79 84L163 18" stroke="#efd8a9" stroke-width="5" stroke-dasharray="8 3"/><circle cx="25" cy="51" r="13" fill="#ffdf6b"/><circle cx="214" cy="51" r="13" fill="#cbe9f3"/><g fill="#21484b" text-anchor="middle" font-size="14" font-weight="900"><text x="25" y="56">A</text><text x="214" y="56">B</text></g></svg>
+    <span class="map-card-title">积木工厂<small>仓库 / 高台</small></span><span class="map-card-copy">利用维修通道与架空走道突破。</span>
+   </button>
+   <button id="map-harbor" class="map-card" data-map="harbor" aria-pressed="false">
+    <svg viewBox="0 0 240 102" aria-hidden="true"><rect width="240" height="102" rx="8" fill="#88cdd9"/><path d="M10 5H230V95H10Z" fill="#e7d4ae"/><path d="M16 51H224M120 6V95" stroke="#c2b18f" stroke-width="11"/><g stroke="#527e83" stroke-width="2"><rect x="28" y="14" width="57" height="24" rx="2" fill="#82b8bb"/><rect x="27" y="66" width="41" height="22" rx="2" fill="#efaaa0"/><rect x="155" y="14" width="57" height="24" rx="2" fill="#efaaa0"/><rect x="171" y="66" width="42" height="22" rx="2" fill="#82b8bb"/></g><path d="M34 21H79M34 29H79M162 21H206M162 29H206" stroke="#ffffff55" stroke-width="3"/><circle cx="94" cy="70" r="13" fill="#ffdf6b"/><circle cx="145" cy="43" r="13" fill="#cbe9f3"/><g fill="#21484b" text-anchor="middle" font-size="14" font-weight="900"><text x="94" y="75">A</text><text x="145" y="48">B</text></g></svg>
+    <span class="map-card-title">奶油港口<small>集装箱 / 码头</small></span><span class="map-card-copy">长线绕后，近距离争夺仓库。</span>
+   </button>
+   <button id="map-random" class="map-card random-card" data-map="random" aria-pressed="false"><span class="random-map-mark" aria-hidden="true">⤨</span><span class="map-card-title">随机地图<small>三选一</small></span><span class="map-card-copy">开始时揭晓，本场固定战场。</span></button>
+  </div>
+  <footer class="lobby-actions">
+   <div class="side-picker" aria-label="选择开局阵营"><button id="side-attack" class="active" aria-pressed="true">进攻方<span>携带炸弹 · 突破包点</span></button><button id="side-defend" aria-pressed="false">防守方<span>保护包点 · 回防拆包</span></button></div>
+   <div class="lobby-start"><span class="selected-map">当前选择：<strong id="selected-map-name">糖果小镇</strong></span><button id="start-btn" class="primary">开始对局 <span>↗</span></button></div>
+   <button id="help-btn" class="text-button">玩法与操作 ↗</button>
+  </footer>
+ </div>
 </section>
 <section id="buy-panel" class="screen hidden" aria-label="购买装备">
  <div class="buy-content"><div class="panel-heading"><div><small>ROUND PREPARATION</small><h2>装备就绪，准备行动。</h2><p id="buy-status">准备期间可以购买装备，不能移动或射击。</p></div><button id="buy-close" class="close-button" aria-label="关闭购买界面">×</button></div>

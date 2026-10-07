@@ -13,7 +13,7 @@ fs.writeFileSync(path.join(release,'.gitignore'),'.DS_Store\nnode_modules/\ndist
 for(const name of ['src','releases'])fs.cpSync(path.join(project,name),path.join(release,name),{recursive:true});
 for(const name of ['index.html','package.json','package-lock.json'])fs.copyFileSync(path.join(project,name),path.join(release,name));
 fs.mkdirSync(path.join(release,'scripts'),{recursive:true});
-for(const name of fs.readdirSync(path.join(project,'scripts')).filter(n=>n.startsWith('bomb-')||['fonts.mjs','standalone.mjs','offline-smoke.mjs','pages-smoke.mjs','prepare-pages.mjs','web_game_playwright_client.js'].includes(n)))fs.copyFileSync(path.join(project,'scripts',name),path.join(release,'scripts',name));
+for(const name of fs.readdirSync(path.join(project,'scripts')).filter(n=>(n.startsWith('bomb-')||n.startsWith('multimap-'))||['fonts.mjs','standalone.mjs','offline-smoke.mjs','pages-smoke.mjs','prepare-pages.mjs','web_game_playwright_client.js'].includes(n)))fs.copyFileSync(path.join(project,'scripts',name),path.join(release,'scripts',name));
 fs.cpSync(path.join(project,'licenses'),path.join(release,'licenses'),{recursive:true});
 
 fs.writeFileSync(path.join(release,'README.md'),fs.readFileSync(path.join(project,'README.md'),'utf8').replace('[离线版](Bean-Frontier.html)','[离线版](site/index.html)'));

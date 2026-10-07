@@ -13,11 +13,14 @@ function parseArgs(argv) {
     actionsJson: null,
     click: null,
     clickSelector: null,
+    selectMap: null,
   };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
     const next = argv[i + 1];
-    if (arg === "--url" && next) {
+    if (arg === "--select-map" && next) {
+      args.selectMap=next;i++;
+    } else if (arg === "--url" && next) {
       args.url = next;
       i++;
     } else if (arg === "--iterations" && next) {
@@ -290,6 +293,7 @@ async function main() {
 
   let canvas = await getCanvasHandle(page);
 
+  if(args.selectMap) await page.click("#map-"+args.selectMap);
   if (args.clickSelector) {
     try {
       await page.click(args.clickSelector, { timeout: 5000 });

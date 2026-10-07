@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+const url=process.argv[2]||'https://ericcui-debug.github.io/bean-frontier/';
+const response=await fetch(url,{headers:{'Cache-Control':'no-cache'}});
+if(!response.ok)throw new Error('Pages HTTP '+response.status);
+const online=Buffer.from(await response.arrayBuffer()),local=fs.readFileSync('Bean-Frontier.html');
+if(!online.equals(local))throw new Error('Public HTML differs from the tested local artifact');
+const hash=createHash('sha256').update(online).digest('hex');fs.mkdirSync('output/pages',{recursive:true});fs.writeFileSync('output/pages/artifact.json',JSON.stringify({url,status:response.status,bytes:online.length,sha256:hash,exactMatch:true},null,2));console.log('Live artifact verified',online.length,hash);
+const child=spawnSync(process.execPath,['scripts/offline-smoke.mjs',url],{stdio:'inherit'});if(child.status!==0)throw new Error('Live interaction smoke failed');
