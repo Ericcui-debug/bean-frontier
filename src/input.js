@@ -1,5 +1,23 @@
 import {clamp} from './physics.js';
 
+// Pure geometry makes the maximum-size layout testable without a browser.
+export function computeTouchLayout({width,height,safe={},size=1}){
+ const l=safe.left||0,r=safe.right||0,t=safe.top||0,b=safe.bottom||0;
+ const portrait=height>width,narrow=width-l-r<700,pad=14,gap=8;
+ const small=Math.max(44,44*size),fire=Math.max(64,(narrow?72:78)*size),stick=Math.max(88,(narrow?96:112)*size),left=Math.max(44,48*size);
+ const right=width-r-pad,bottom=height-b-16,stickX=l+pad,stickY=bottom-stick;
+ const rowY=bottom-fire-gap-small-(portrait?small+gap:0),fireX=right-fire;
+ const positions={stick:[stickX,stickY,stick,stick],fire:[fireX,bottom-fire,fire,fire],aim:[fireX-gap-small,bottom-small,small,small],jump:[right-small,rowY,small,small],reload:[right-small*2-gap,rowY,small,small],interact:[right-small*3-gap*2,rowY,small,small]};
+ if(portrait)positions.aim=[right-small,bottom-fire-gap-small,small,small];
+ const healthY=stickY-42;
+ positions.left=portrait?[stickX,healthY-gap-left,left,left]:[stickX+stick+12,stickY-left+6,left,left];
+ const weaponW=104,weaponY=portrait?rowY-70:bottom-44,weaponX=portrait?right-weaponW:(l+(width-l-r)/2-weaponW/2);
+ const mapW=narrow?86:110,mapH=narrow?70:88,mapY=portrait?t+76:t+10;
+ const toolsX=right-144,stripX=portrait?stickX:stickX+mapW+12,stripW=portrait?toolsX-gap-stickX:Math.min(242,toolsX-gap-stripX);
+ const hintY=portrait?height/2-70:Math.min(rowY-28,height/2-44);
+ return {portrait,width,height,safe:{left:l,right:r,top:t,bottom:b},small,fire,stick,positions,health:[stickX,healthY,Math.min(124,stick),34],arsenal:[weaponX,weaponY,weaponW,44],map:[stickX,mapY,mapW,mapH],tools:[toolsX,t+8,144,44],strip:[stripX,t+8,stripW,44],objective:portrait?[stickX+mapW+12,t+76,width-r-pad-stickX-mapW-12]:[l+(width-l-r)/2,t+58,Math.min(260,width-l-r-220)],hintY};
+}
+
 // Each pointer owns one action. Camera ownership can transfer without replaying
 // the passive finger's previous movement, including a finger on the fire key.
 export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=>false,aimSlowdown=()=>1}){
@@ -8,9 +26,32 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
  const keys=new Set(),actions=new Map(),lookPointers=new Map();
  const stick=document.querySelector('#move-stick'),thumb=stick.querySelector('b'),look=document.querySelector('#look-zone');
  const state={x:0,z:0,fire:false,aim:false,interactHeld:false,mobile};
- const safeProbe=document.createElement('div');safeProbe.style.cssText='position:fixed;visibility:hidden;pointer-events:none;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)';document.body.appendChild(safeProbe);
+ const safeProbe=document.createElement('div');safeProbe.style.cssText='position:fixed;visibility:hidden;pointer-events:none;padding-left:var(--safe-left);padding-right:var(--safe-right);padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)';document.body.appendChild(safeProbe);
  const sensitivity={look:1,ads:.6,sniper:.35},layout={size:1,opacity:.72};
  let stickId=null,lookId=null,drag=null,touchAim=false,hadPointerLock=false;
+ let metrics={width:Math.max(240,innerWidth),stick:{x:0,y:0,radius:40}},metricsFrame=0;
+ function refreshMetrics(){
+  metricsFrame=0;
+  const css=getComputedStyle(safeProbe),safe={left:parseFloat(css.paddingLeft)||0,right:parseFloat(css.paddingRight)||0,top:parseFloat(css.paddingTop)||0,bottom:parseFloat(css.paddingBottom)||0};
+  const width=window.visualViewport?.width||innerWidth,height=window.visualViewport?.height||innerHeight;
+  const geometry=computeTouchLayout({width,height,safe,size:layout.size}),root=document.documentElement.style;
+  if(mobile){
+   for(const [key,rect] of Object.entries(geometry.positions))for(let i=0;i<4;i++)root.setProperty(`--${key}-${['x','y','w','h'][i]}`,rect[i]+'px');
+   for(const [key,rect] of Object.entries({health:geometry.health,arsenal:geometry.arsenal,map:geometry.map,tools:geometry.tools,strip:geometry.strip}))for(let i=0;i<4;i++)root.setProperty(`--${key}-${['x','y','w','h'][i]}`,rect[i]+'px');
+   root.setProperty('--objective-x',geometry.objective[0]+'px');root.setProperty('--objective-y',geometry.objective[1]+'px');root.setProperty('--objective-w',geometry.objective[2]+'px');root.setProperty('--hint-y',geometry.hintY+'px');
+  }
+  const rect=stick.getBoundingClientRect(),thumbWidth=thumb.getBoundingClientRect().width;
+  metrics={width:Math.max(240,width-safe.left-safe.right),height,safe,geometry,stick:{x:rect.left+rect.width/2,y:rect.top+rect.height/2,radius:Math.max(20,rect.width/2-thumbWidth/2-4)}};
+ }
+ function scheduleMetrics(){if(!metricsFrame)metricsFrame=requestAnimationFrame(refreshMetrics);}
+ for(const event of ['resize','orientationchange','pageshow'])window.addEventListener(event,scheduleMetrics);
+ document.addEventListener('fullscreenchange',scheduleMetrics);
+ window.visualViewport?.addEventListener('resize',scheduleMetrics);
+ window.visualViewport?.addEventListener('scroll',scheduleMetrics);
+ screen.orientation?.addEventListener?.('change',scheduleMetrics);
+ // Custom safe-area overrides used by embedding pages and test fixtures also refresh.
+ let observedLayoutStyle='';
+ new MutationObserver(()=>{const style=document.documentElement.style,signature=['--safe-left','--safe-right','--safe-top','--safe-bottom','--control-size'].map(k=>style.getPropertyValue(k)).join('|');if(signature!==observedLayoutStyle){observedLayoutStyle=signature;scheduleMetrics();}}).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
  const prevent=e=>{if(e.cancelable)e.preventDefault();};
  const capture=(el,id)=>{try{el.setPointerCapture(id);}catch{}};
  const fireAction=a=>a==='fire'||a==='fire-left';
@@ -37,6 +78,7 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
   if(Number.isFinite(values.opacity))layout.opacity=clamp(values.opacity,.35,1);
   document.documentElement.style.setProperty('--control-size',layout.size);
   document.documentElement.style.setProperty('--control-opacity',layout.opacity);
+  refreshMetrics();
   return getLayout();
  }
  function lookFactor(touch){
@@ -44,9 +86,7 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
   const factor=state.aim?(sniper?sensitivity.sniper:sensitivity.ads):sensitivity.look;
   const slowdown=Number(aimSlowdown());
   // Normalize by usable CSS width, including Safari visualViewport and cutouts.
-  const css=getComputedStyle(safeProbe),safe=Number.parseFloat(css.paddingLeft)+Number.parseFloat(css.paddingRight);
-  const width=Math.max(240,(window.visualViewport?.width||window.innerWidth)-(Number.isFinite(safe)?safe:0));
-  return factor*(touch?Math.PI/width:.003)*clamp(Number.isFinite(slowdown)?slowdown:1,.45,1);
+  return factor*(touch?Math.PI/metrics.width:.003)*clamp(Number.isFinite(slowdown)?slowdown:1,.45,1);
  }
  window.addEventListener('keydown',e=>{
   if(e.target instanceof HTMLElement&&e.target.matches('input,select,textarea'))return;
@@ -84,8 +124,8 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
  window.addEventListener('orientationchange',interrupt);
  screen.orientation?.addEventListener?.('change',interrupt);
  function stickMove(e){
-  const rect=stick.getBoundingClientRect(),radius=Math.max(20,rect.width/2-thumb.getBoundingClientRect().width/2-4);
-  const dx=e.clientX-rect.left-rect.width/2,dz=e.clientY-rect.top-rect.height/2,length=Math.hypot(dx,dz),m=Math.min(1,length/radius);
+  const {radius,x,y}=metrics.stick;
+  const dx=e.clientX-x,dz=e.clientY-y,length=Math.hypot(dx,dz),m=Math.min(1,length/radius);
   const power=Math.max(0,(m-.1)/.9);
   thumb.style.transform=`translate(${length?dx/length*m*radius:0}px,${length?dz/length*m*radius:0}px)`;
   state.x=length?dx/length*power:0;state.z=length?-dz/length*power:0;
@@ -117,6 +157,8 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
   if(el.dataset.action==='fire')el.addEventListener('pointermove',moveLook);attachRelease(el);
  });
  const touch=document.querySelector('#touch');
+ const visibilityObserver=new MutationObserver(scheduleMetrics);
+ for(const el of [touch,document.querySelector('#hud')])visibilityObserver.observe(el,{attributes:true,attributeFilter:['class']});
  for(const event of ['contextmenu','selectstart','dragstart'])touch.addEventListener(event,prevent);
  for(const event of ['touchstart','touchmove'])touch.addEventListener(event,prevent,{passive:false});
  function sample(){
@@ -126,5 +168,5 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
  }
  function refreshHeldDesktop(){state.interactHeld=keys.has('KeyE')||[...actions.values()].some(v=>v.action==='interact');}
  setLayout();
- return {state,keys,reset,sample,mobile,getSensitivity,setSensitivity,getLayout,setLayout,getSettings:()=>({...sensitivity,...layout}),setSettings:values=>{setSensitivity(values);setLayout(values);}};
+ return {state,keys,reset,sample,mobile,getMetrics:()=>({...metrics,geometry:undefined}),getSensitivity,setSensitivity,getLayout,setLayout,getSettings:()=>({...sensitivity,...layout}),setSettings:values=>{setSensitivity(values);setLayout(values);}};
 }

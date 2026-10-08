@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import {createWorld} from '../src/world.js';
 import {MAPS} from '../src/maps.js';
 import {CHARACTER} from '../src/dimensions.js';
+import {mapShapes} from '../src/map-geometry.js';
 import {moveActor,STEP,segmentSolid} from '../src/physics.js';
 const scene=new THREE.Scene(),labels=[],material=new THREE.MeshBasicMaterial(),unit=new THREE.BoxGeometry(1,1,1);
 const mesh=(geo,c,parent=scene)=>{const m=new THREE.Mesh(geo,material);parent.add(m);return m;};
@@ -12,11 +13,13 @@ const world=createWorld({scene,mesh,box,label,labels}),checks=[];
 function check(name,pass){assert.ok(pass,name);checks.push(name);}
 function follow(start,target,{profile='soldier',fps=60,seconds=90}={}){const r={...start,vx:0,vy:0,vz:0,yaw:0,grounded:true,radius:CHARACTER.radius,height:CHARACTER.height,navigationProfile:profile,isHostage:profile==='hostage'},route=world.path(r,target,{profile});let index=0;for(let frame=0;frame<seconds*fps;frame++){for(let step=0;step<Math.round(1/fps/STEP);step++){let q=route[index];if(!q)return {actor:r,reached:Math.hypot(r.x-target.x,r.z-target.z)<.4&&Math.abs(r.y-target.y)<.4};if(q.kind==='door'){world.toggleDoor(q.id);index++;continue;}if(q.kind==='grille'){world.damageSolid(q.solid,100);index++;continue;}const distance=Math.hypot(q.x-r.x,q.z-r.z);if(distance<.12&&Math.abs(q.y-r.y)<.35){index++;continue;}const speed=4.3,pace=Math.min(speed,distance/STEP);r.vx=distance?((q.x-r.x)/distance)*pace:0;r.vz=distance?((q.z-r.z)/distance)*pace:0;r.traverseWaypoint=q;r.traverseForward=q.kind==='ladder'?Math.sign(q.y-r.y):Math.hypot(r.vx,r.vz);moveActor(r,STEP,world);}}return {actor:r,reached:false,index,remaining:route.slice(index)};}
 for(const def of MAPS){world.loadMap(def.id);check(def.id+' mode and named region completeness',world.mode===def.mode&&def.checklist.length>10&&def.areas.length>=9);check(def.id+' precomputed navcat profiles and BVH',world.navigation.soldier.source==='navcat@0.4.1'&&world.navigation.hostage.source==='navcat@0.4.1'&&world.bvh);check(def.id+' ten clear distinct spawns',[...world.spawns.attack,...world.spawns.defend].every(p=>world.canWalk(p,p)));check(def.id+' spawning sides have obstructed LOS',world.spawns.attack.every(a=>world.spawns.defend.every(b=>world.blocked({...a,y:a.y+1.2},{...b,y:b.y+1.2}))));
+ const geometrySignature=s=>JSON.stringify(['x0','x1','z0','z1','y0','y1','type','shape','axis','sign'].map(k=>s[k]));check(def.id+' bake and runtime share all closed static solids including offset boundaries',JSON.stringify(mapShapes(def,{dynamic:false}).map(geometrySignature).sort())===JSON.stringify(world.solids.filter(s=>!s.dynamic).map(geometrySignature).sort()));
  const goals=def.mode==='rescue'?[...world.hostagePositions,...world.rescueZones]:world.sites;
  for(const side of ['attack','defend'])for(const spawn of world.spawns[side])for(const goal of goals)check(`${def.id} ${side} -> objective ${goal.x},${goal.z}`,world.path(spawn,goal).length>0);
  for(const [id,routes] of Object.entries(world.routeVariants))for(const route of routes){let previous=world.spawns.attack[0];for(const point of route){check(`${def.id} ${id} waypoint body clearance ${JSON.stringify(point)}`,world.canWalk(point,point));check(`${def.id} ${id} authored route connected`,world.path(previous,point).length>0);previous=point;}}
  for(const p of world.defensePositions)check(def.id+' defensive anchor clear',world.canWalk(p,p)&&world.path(world.spawns.defend[0],p).length>0);
  for(const fps of [15,30,60])for(const goal of def.mode==='rescue'?[world.hostagePositions[0]]:world.sites){world.reset();const result=follow(world.spawns.attack[0],goal,{fps});check(`${def.id} objective actually walkable ${fps} FPS ${goal.x}`,result.reached||assert.fail(JSON.stringify(result)));}
+ const textured=[];scene.traverse(m=>{if(m.isMesh)textured.push(m);});check(def.id+' all terrain meshes retain UVs including ramps',textured.every(m=>m.geometry.getAttribute('uv')?.count===m.geometry.getAttribute('position')?.count));
  check(def.id+' only active map objects and labels',scene.children.filter(s=>s.name.startsWith('map:')).length===1&&labels.every(l=>l.parent?.name==='map:'+def.id));
  // BVH and analytic closed-shape reference agree for deterministic cross-map rays.
  for(let i=0;i<120;i++){const a={x:def.bounds.x0+3+(i*11.3)%80,y:.8+(i%7),z:def.bounds.z0+3+(i*7.1)%75},b={x:def.bounds.x1-3-(i*5.2)%80,y:.6+(i%9),z:def.bounds.z1-3-(i*9.7)%75};let expected=null;for(const s of world.solids){if(!s.active)continue;const hit=segmentSolid(a,b,s);if(hit&&(!expected||hit.t<expected.t))expected={...hit,solid:s};}const actual=world.blocked(a,b);check(def.id+' BVH segment '+i,(expected===null&&actual===null)||(expected&&actual&&Math.abs(expected.t-actual.t)<.0001));}
@@ -30,6 +33,10 @@ for(const def of MAPS){world.loadMap(def.id);check(def.id+' mode and named regio
   for(const fps of [15,30,60]){const result=follow({x:-4,y:7.42,z:-15},{x:-5.5,y:3.2,z:-17},{fps});check('duct descent ladder '+fps,result.reached||assert.fail(JSON.stringify(result)));}
  }else{
   const upper=world.areas.find(a=>a.name==='上层隧道'),lower=world.areas.find(a=>a.name==='下层隧道');check('upper and lower tunnels have genuinely different height',upper.y-lower.y>=1.5);for(const fps of [15,30,60]){const result=follow(lower,upper,{fps});check('tunnel real stair height transition '+fps,result.reached||assert.fail(JSON.stringify(result)));}
+  check('upper tunnel south portal has standing continuous clearance',world.canWalk({x:-30,y:0,z:36},{x:-30,y:1.6,z:22}));
+  check('upper tunnel north portal has standing continuous clearance',world.canWalk({x:-30,y:0,z:-2},{x:-30,y:1.6,z:7}));
+  check('CT A ramp ends flush with platform without routing via short',world.canWalk({x:9.5,y:0,z:-27},{x:21,y:3.2,z:-27}));
+  for(const fps of [15,30,60]){const result=follow({x:9,y:0,z:-27},{x:29,y:3.2,z:-26},{fps});check('CT A ramp actually walkable '+fps,result.reached||assert.fail(JSON.stringify(result)));}
   const window={x:-18,y:1.7,z:-28};check('B window is an actual passage with headroom',world.canWalk(window,window)&&world.path(world.spawns.defend[0],window).length>0);
  }
 }

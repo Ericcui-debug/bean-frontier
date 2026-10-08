@@ -1,6 +1,6 @@
 {
   "name": "bean-frontier",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -8,13 +8,14 @@
     "build": "node scripts/bake-classic-nav.mjs && vite build && node scripts/standalone.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 5181",
     "test": "node scripts/classic-map-verify.mjs && node scripts/classic-visual-verify.mjs && node scripts/classic-rules-verify.mjs && node scripts/classic-ai-verify.mjs && node scripts/bomb-combat-verify.mjs && node scripts/bomb-match-verify.mjs",
-    "test:mobile": "node scripts/classic-mobile-verify.mjs --screenshots",
+    "test:mobile": "node scripts/polish-mobile-verify.mjs --screenshots",
     "test:route": "node scripts/classic-desktop-verify.mjs assault && node scripts/classic-desktop-verify.mjs dust2",
     "test:upgrade": "npm test && npm run test:route && npm run test:mobile",
     "test:audit": "node scripts/classic-final-audit.mjs",
     "test:offline": "node scripts/offline-smoke.mjs",
     "test:pages": "node scripts/pages-smoke.mjs",
-    "bake:maps": "node scripts/bake-classic-nav.mjs"
+    "bake:maps": "node scripts/bake-classic-nav.mjs",
+    "test:polish": "node scripts/polish-ai-verify.mjs && node scripts/polish-combat-verify.mjs && node scripts/polish-mobile-layout-verify.mjs && node scripts/classic-route-timing.mjs"
   },
   "dependencies": {
     "navcat": "0.4.1",
