@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+const browser=await chromium.connectOverCDP('http://127.0.0.1:9333');
+const out='output/bomb-mobile';
+async function capture(size,run){const context=await browser.newContext({viewport:size,hasTouch:true,isMobile:true,deviceScaleFactor:1}),page=await context.newPage();try{await page.goto('http://localhost:5180/?test');await page.waitForFunction(()=>window.__gameTest);await page.evaluate(()=>{const {game,input,settings}=window.__gameTest;game.reset();game.start();game.ai.update=()=>{};input.setLayout({size:1.25,opacity:.72});settings.assist=false;window.advanceTime(15000);});await page.waitForTimeout(100);await page.evaluate(()=>window.advanceTime(0));await run(page);}finally{await context.close();}}
+const shot=async(page,name)=>{await page.evaluate(()=>window.advanceTime(0));await page.screenshot({timeout:8000,path:out+'/'+name+'.png'});};
+try{
+ for(const size of [{width:844,height:390},{width:568,height:320},{width:390,height:844}])await capture(size,async page=>{assert.equal(await page.evaluate(()=>window.__gameTest.game.state.mode),'playing');await shot(page,`active-${size.width}x${size.height}`);assert.equal(await page.evaluate(()=>window.__gameTest.game.state.mode),'playing');});
+ await capture({width:844,height:390},async page=>{await page.evaluate(()=>{const {game,world,input}=window.__gameTest,s=world.sites[0];Object.assign(game.player,{x:s.x,y:s.y,z:s.z,vx:0,vz:0,vy:0,grounded:true});input.state.interactHeld=true;window.advanceTime(1200);});await page.waitForTimeout(75);await shot(page,'plant-ring');await page.evaluate(()=>{const {game,input}=window.__gameTest;input.reset();game.combat.equip(game.player,3);game.combat.select(game.player,1);input.state.aim=true;window.advanceTime(500);});await page.waitForTimeout(75);await shot(page,'sniper-scope');await page.evaluate(()=>window.__gameTest.game.pause());await shot(page,'paused-settings');await page.evaluate(()=>{const {game}=window.__gameTest;game.reset();game.start();window.__gameTest.setBuy(true);});await page.waitForTimeout(75);await shot(page,'buy');});
+ console.log('Captured 7 mobile screenshots without browser errors.');
+}finally{await browser.close();}

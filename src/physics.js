@@ -20,14 +20,15 @@ export function segmentSphere(a,b,c,r){const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,ox
 export function sweepActor(r,dx,dz,world){
  let x=r.x,z=r.z,rx=dx,rz=dz;const y=r.y+.06;
  for(let pass=0;pass<3;pass++){
-  let hit=null;for(const s of world.solids){if(!s.active||r.y+r.height<s.y0+.02||y>=s.y1-.025)continue;const top=s.shape==='ramp'?rampHeight(s,x,z):s.y1;if((r.grounded&&top<=r.y+.38)||(s.shape==='ramp'&&y>=top-.025))continue;const box={x0:s.x0-r.radius,x1:s.x1+r.radius,y0:-100,y1:100,z0:s.z0-r.radius,z1:s.z1+r.radius};const h=segmentBox({x,y:0,z},{x:x+rx,y:0,z:z+rz},box);if(h&&(h.normal.x||h.normal.z)&&(!hit||h.t<hit.t))hit=h;}
+  let hit=null;for(const s of world.collisionCandidates?.(x,z,rx,rz,r.y,r.height,r.radius)||world.solids){if(!s.active||r.y+r.height<s.y0+.02||y>=s.y1-.025)continue;const top=s.shape==='ramp'?rampHeight(s,x,z):s.y1;if((r.grounded&&top<=r.y+.38)||(s.shape==='ramp'&&y>=top-.025))continue;const box={x0:s.x0-r.radius,x1:s.x1+r.radius,y0:-100,y1:100,z0:s.z0-r.radius,z1:s.z1+r.radius};const h=segmentBox({x,y:0,z},{x:x+rx,y:0,z:z+rz},box);if(h&&(h.normal.x||h.normal.z)&&(!hit||h.t<hit.t))hit=h;}
   if(!hit){x+=rx;z+=rz;break;}const t=Math.max(0,hit.t-.001);x+=rx*t;z+=rz*t;rx*=1-t;rz*=1-t;if(hit.normal.x)rx=0;if(hit.normal.z)rz=0;
  }
  // Resolve any overlap from explosion knockback or a newly moved actor.
- for(const s of world.solids){if(!s.active||r.y+r.height<=s.y0||y>=s.y1-.025)continue;const top=s.shape==='ramp'?rampHeight(s,x,z):s.y1;if((r.grounded&&top<=r.y+.38)||(s.shape==='ramp'&&y>=top-.025))continue;const x0=s.x0-r.radius,x1=s.x1+r.radius,z0=s.z0-r.radius,z1=s.z1+r.radius;if(x>x0&&x<x1&&z>z0&&z<z1){const d=[x-x0,x1-x,z-z0,z1-z],i=d.indexOf(Math.min(...d));if(i===0)x=x0-.001;if(i===1)x=x1+.001;if(i===2)z=z0-.001;if(i===3)z=z1+.001;}}
+ for(const s of world.collisionCandidates?.(x,z,0,0,r.y,r.height,r.radius)||world.solids){if(!s.active||r.y+r.height<=s.y0||y>=s.y1-.025)continue;const top=s.shape==='ramp'?rampHeight(s,x,z):s.y1;if((r.grounded&&top<=r.y+.38)||(s.shape==='ramp'&&y>=top-.025))continue;const x0=s.x0-r.radius,x1=s.x1+r.radius,z0=s.z0-r.radius,z1=s.z1+r.radius;if(x>x0&&x<x1&&z>z0&&z<z1){const d=[x-x0,x1-x,z-z0,z1-z],i=d.indexOf(Math.min(...d));if(i===0)x=x0-.001;if(i===1)x=x1+.001;if(i===2)z=z0-.001;if(i===3)z=z1+.001;}}
  r.x=x;r.z=z;
 }
 export function moveActor(r,dt,world){
+ if(world.traverse?.(r,dt))return;
  const old={x:r.x,y:r.y,z:r.z};sweepActor(r,r.vx*dt,r.vz*dt,world);
  const floor=world.groundAt(r.x,r.z,old.y+.38),oldFloor=world.groundAt(old.x,old.z,old.y+.38);
  if(r.grounded&&floor!==null&&oldFloor!==null&&Math.abs(old.y-oldFloor)<.38&&Math.abs(floor-oldFloor)<.38){r.y=floor;r.vy=0;}else{r.grounded=false;r.vy-=20*dt;let ny=r.y+r.vy*dt;

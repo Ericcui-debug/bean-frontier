@@ -1,2 +1,12 @@
 import fs from 'node:fs';
-const files=fs.readdirSync('dist/assets');let html=fs.readFileSync('dist/index.html','utf8');const js=fs.readFileSync('dist/assets/'+files.find(f=>f.endsWith('.js')),'utf8'),css=fs.readFileSync('dist/assets/'+files.find(f=>f.endsWith('.css')),'utf8');html=html.replace(/<script type="module"[^>]*src="[^"]+"[^>]*><\/script>/,'').replace(/<link rel="stylesheet"[^>]*>/,()=>`<style>${css}</style>`).replace('</body>',()=>`<script type="module">${js.replace(/<\/script/gi,'<\\/script')}</script></body>`);fs.writeFileSync('Bean-Frontier.html',html);console.log('Created standalone Bean-Frontier.html');
+const files=fs.readdirSync('dist/assets');
+const scripts=files.filter(f=>f.endsWith('.js')), styles=files.filter(f=>f.endsWith('.css'));
+if(scripts.length!==1||styles.length!==1)throw new Error('Standalone expects a single self-contained JS and CSS entry');
+let html=fs.readFileSync('dist/index.html','utf8');
+const js=fs.readFileSync('dist/assets/'+scripts[0],'utf8'),css=fs.readFileSync('dist/assets/'+styles[0],'utf8');
+const licenses=Object.fromEntries(fs.readdirSync('licenses').map(name=>[name,fs.readFileSync('licenses/'+name,'utf8')]));
+licenses['ASSETS.md']=fs.readFileSync('ASSETS.md','utf8');
+const notices=JSON.stringify(licenses).replace(/</g,'\\u003c');
+html=html.replace(/<script type="module"[^>]*src="[^"]+"[^>]*><\/script>/,'').replace(/<link rel="stylesheet"[^>]*>/,()=>`<style>${css}</style>`).replace('</body>',()=>`<script id="asset-licenses" type="application/json">${notices}</script><script type="module">${js.replace(/<\/script/gi,'<\\/script')}</script></body>`);
+fs.writeFileSync('Bean-Frontier.html',html);
+console.log('Created standalone Bean-Frontier.html with embedded assets, fonts and full license notices');

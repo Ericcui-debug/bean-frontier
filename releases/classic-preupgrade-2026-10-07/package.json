@@ -1,0 +1,26 @@
+{
+  "name": "bean-frontier",
+  "version": "2.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5180 --strictPort",
+    "build": "vite build && node scripts/standalone.mjs",
+    "preview": "vite preview --host 0.0.0.0 --port 5181",
+    "test": "node scripts/bomb-map-verify.mjs && node scripts/bomb-combat-verify.mjs && node scripts/bomb-match-verify.mjs && node scripts/bomb-multimap-runtime.mjs && node scripts/bomb-ai-verify.mjs && node scripts/bomb-final-audit.mjs && node scripts/bomb-multimap-audit.mjs",
+    "test:mobile": "node scripts/bomb-mobile-verify.mjs",
+    "test:route": "node scripts/bomb-desktop-verify.mjs town && node scripts/bomb-desktop-verify.mjs factory && node scripts/bomb-desktop-verify.mjs harbor",
+    "test:upgrade": "npm test && npm run test:route && npm run test:mobile && npm run test:maps-mobile",
+    "test:audit": "node scripts/bomb-final-audit.mjs --browser",
+    "test:offline": "node scripts/offline-smoke.mjs",
+    "test:pages": "node scripts/pages-smoke.mjs",
+    "test:maps-mobile": "node scripts/bomb-multimap-mobile.mjs"
+  },
+  "dependencies": {
+    "three": "0.185.1",
+    "vite": "8.2.2"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

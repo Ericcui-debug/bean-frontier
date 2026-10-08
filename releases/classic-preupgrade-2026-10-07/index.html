@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"><meta name="theme-color" content="#21484b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='12' y='5' width='40' height='54' rx='20' fill='%23f455a6'/%3E%3Cellipse cx='32' cy='26' rx='14' ry='15' fill='%23fff4da'/%3E%3Cpath d='M27 22v8m10-8v8' stroke='%23284c50' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>豆豆火力岛：爆破行动 · BEAN FRONTIER</title>
+</head>
+<body>
+<canvas id="game" aria-label="豆豆火力岛第一人称竞技场"></canvas>
+<div id="hud" class="hidden">
+ <div class="match-strip"><small id="round-label">第 1 回合</small><strong id="score">0 : 0</strong><span id="timer">00:15</span><small id="alive-count">我方 5 · 对方 5</small></div>
+ <div class="objective-strip"><span id="objective">购买装备，选择进攻路线</span></div>
+ <div class="tools"><button id="buy-open" title="购买装备（B）">购买</button><button id="pause" title="暂停与设置">Ⅱ</button><button id="full" title="全屏">⛶</button></div>
+ <div id="map" aria-label="小地图：自己、队友与包点"></div><div class="map-key"><strong id="map-name">糖果小镇</strong><span>▲ 自己　● 队友　A / B 包点</span></div>
+ <div id="crosshair"><i></i><i></i><i></i><i></i><b></b></div><div id="scope-overlay" class="hidden"><div class="scope-lens"></div></div><div id="hitmarker">×</div><div id="hurt"></div>
+ <div id="toast" role="status"></div>
+ <div id="interact-hint"></div><div id="interaction-progress" role="progressbar" aria-label="互动进度"></div>
+ <div id="health"><span class="health-number"><strong id="health-text">100</strong><small>生命</small></span><div class="health-track"><i id="health-fill"></i></div><span id="armor-text">护甲 0</span><span id="money">$800</span></div>
+ <div id="arsenal"><div id="ammo"><strong id="ammo-count">12</strong><span id="ammo-reserve">/ 60</span><small id="reload-state">豆豆手枪</small></div><nav id="weapons"><button id="weapon-secondary" data-weapon="0"><em>1</em><span>手枪</span></button><button id="weapon-primary" data-weapon="1"><em>2</em><span>主武器</span></button></nav></div>
+ <div id="spectate-hud" class="hidden"><strong id="spectate-name">队友视角</strong><button id="spectate-next">切换队友 ›</button><button id="spectate-speed">观战 ×1</button></div>
+ <div id="desktop-help">WASD 移动 · 鼠标瞄准 · 右键开镜 · E 按住安拆包 · R 换弹 · B 购买</div><div id="rotate-hint">转为横屏，视野更开阔</div>
+ <div id="touch">
+  <div id="look-zone" aria-label="滑动转镜头"></div>
+  <div id="move-stick" aria-label="移动摇杆"><b></b><span>小幅慢走 · 外圈跑动</span></div>
+  <button data-action="fire-left" id="left-fire-button" aria-label="左开火">◎<span>开火</span></button>
+  <button data-action="fire" id="fire-button" aria-label="按住射击并拖动瞄准">◎<span>开火 / 拖动</span></button>
+  <button data-action="aim" id="aim-button" aria-label="切换开镜">⊕<span>开镜</span></button>
+  <button data-action="jump" id="jump-button" aria-label="跳跃">↟<span>跳跃</span></button>
+  <button data-action="reload" id="reload-button" aria-label="换弹">↻<span>换弹</span></button>
+  <button data-action="interact" id="interact-button" aria-label="按住安包或拆包，点击拾取">◈<span>互动</span></button>
+ </div>
+</div>
+<section id="lobby" class="screen">
+ <div class="lobby-layout">
+  <header class="lobby-copy"><div class="eyebrow">BEAN FRONTIER / DEMOLITION</div><h1>豆豆火力岛<span>爆破行动</span></h1><p>三张糖果战场，五对五短局。<br>走侧路、抢中路、守住包点。先拿下五回合。</p><div class="lobby-details">第一人称 · 5v5 AI · 单人离线可玩</div></header>
+  <div class="map-picker" role="group" aria-label="选择本场地图">
+   <div class="map-picker-heading"><span>选择战场</span><small>整场对局固定地图</small></div>
+   <button id="map-town" class="map-card active" data-map="town" aria-pressed="true">
+    <svg viewBox="0 0 240 102" aria-hidden="true"><rect width="240" height="102" rx="8" fill="#8acac1"/><path d="M0 54H240M120 0V102M38 102V24H202V102" stroke="#f2dfb0" stroke-width="13" fill="none"/><g fill="#f593b0" stroke="#ad647a" stroke-width="2"><rect x="47" y="5" width="48" height="35" rx="4"/><rect x="47" y="70" width="47" height="28" rx="4"/></g><g fill="#f5bf83" stroke="#af895f" stroke-width="2"><rect x="145" y="5" width="48" height="35" rx="4"/><rect x="145" y="70" width="47" height="28" rx="4"/></g><circle cx="28" cy="50" r="13" fill="#ffdf6b"/><circle cx="213" cy="50" r="13" fill="#cbe9f3"/><g fill="#21484b" text-anchor="middle" font-size="14" font-weight="900"><text x="28" y="55">A</text><text x="213" y="55">B</text></g></svg>
+    <span class="map-card-title">糖果小镇<small>街巷 / 庭院</small></span><span class="map-card-copy">穿过商店，沿后巷绕进包点。</span>
+   </button>
+   <button id="map-factory" class="map-card" data-map="factory" aria-pressed="false">
+    <svg viewBox="0 0 240 102" aria-hidden="true"><rect width="240" height="102" rx="8" fill="#bacdc2"/><path d="M0 51H240M44 0V102M196 0V102" stroke="#f3d793" stroke-width="12"/><rect x="62" y="8" width="116" height="85" rx="4" fill="#668b89"/><path d="M65 51H177M120 10V93" stroke="#bcded3" stroke-width="12"/><g fill="#f8b381"><rect x="75" y="19" width="25" height="20" rx="2"/><rect x="137" y="63" width="25" height="19" rx="2"/></g><path d="M79 84L163 18" stroke="#efd8a9" stroke-width="5" stroke-dasharray="8 3"/><circle cx="25" cy="51" r="13" fill="#ffdf6b"/><circle cx="214" cy="51" r="13" fill="#cbe9f3"/><g fill="#21484b" text-anchor="middle" font-size="14" font-weight="900"><text x="25" y="56">A</text><text x="214" y="56">B</text></g></svg>
+    <span class="map-card-title">积木工厂<small>仓库 / 高台</small></span><span class="map-card-copy">利用维修通道与架空走道突破。</span>
+   </button>
+   <button id="map-harbor" class="map-card" data-map="harbor" aria-pressed="false">
+    <svg viewBox="0 0 240 102" aria-hidden="true"><rect width="240" height="102" rx="8" fill="#88cdd9"/><path d="M10 5H230V95H10Z" fill="#e7d4ae"/><path d="M16 51H224M120 6V95" stroke="#c2b18f" stroke-width="11"/><g stroke="#527e83" stroke-width="2"><rect x="28" y="14" width="57" height="24" rx="2" fill="#82b8bb"/><rect x="27" y="66" width="41" height="22" rx="2" fill="#efaaa0"/><rect x="155" y="14" width="57" height="24" rx="2" fill="#efaaa0"/><rect x="171" y="66" width="42" height="22" rx="2" fill="#82b8bb"/></g><path d="M34 21H79M34 29H79M162 21H206M162 29H206" stroke="#ffffff55" stroke-width="3"/><circle cx="94" cy="70" r="13" fill="#ffdf6b"/><circle cx="145" cy="43" r="13" fill="#cbe9f3"/><g fill="#21484b" text-anchor="middle" font-size="14" font-weight="900"><text x="94" y="75">A</text><text x="145" y="48">B</text></g></svg>
+    <span class="map-card-title">奶油港口<small>集装箱 / 码头</small></span><span class="map-card-copy">长线绕后，近距离争夺仓库。</span>
+   </button>
+   <button id="map-random" class="map-card random-card" data-map="random" aria-pressed="false"><span class="random-map-mark" aria-hidden="true">⤨</span><span class="map-card-title">随机地图<small>三选一</small></span><span class="map-card-copy">开始时揭晓，本场固定战场。</span></button>
+  </div>
+  <footer class="lobby-actions">
+   <div class="side-picker" aria-label="选择开局阵营"><button id="side-attack" class="active" aria-pressed="true">进攻方<span>携带炸弹 · 突破包点</span></button><button id="side-defend" aria-pressed="false">防守方<span>保护包点 · 回防拆包</span></button></div>
+   <div class="lobby-start"><span class="selected-map">当前选择：<strong id="selected-map-name">糖果小镇</strong></span><button id="start-btn" class="primary">开始对局 <span>↗</span></button></div>
+   <button id="help-btn" class="text-button">玩法与操作 ↗</button>
+  </footer>
+ </div>
+</section>
+<section id="buy-panel" class="screen hidden" aria-label="购买装备">
+ <div class="buy-content"><div class="panel-heading"><div><small>ROUND PREPARATION</small><h2>装备就绪，准备行动。</h2><p id="buy-status">准备期间可以购买装备，不能移动或射击。</p></div><button id="buy-close" class="close-button" aria-label="关闭购买界面">×</button></div>
+ <div class="buy-grid"><button class="buy-card" data-buy="1"><span class="gun-mark">▰</span><strong>冲锋枪</strong><span>近距离快攻</span><small>30 / 120　·　18 伤害</small><b>$1,000</b></button><button class="buy-card" data-buy="2"><span class="gun-mark">━▰</span><strong>步枪</strong><span>中距离全能</span><small>30 / 90　·　30 伤害</small><b>$2,400</b></button><button class="buy-card" data-buy="3"><span class="gun-mark">━┳━</span><strong>狙击枪</strong><span>精准单发</span><small>5 / 20　·　80 伤害</small><b>$3,500</b></button><button class="buy-card armor-card" data-buy="armor"><span class="gun-mark">◇</span><strong>豆豆护甲</strong><span>身体伤害降低 20%</span><small>下一次出击，多一点底气</small><b>$600</b></button></div>
+ <div class="buy-footer"><button id="recommend" class="primary">一键推荐装备 ↗</button><div class="tactic-picker"><span>本回合战术</span><button id="tactic-a" class="active">A 包点</button><button id="tactic-b">B 包点</button></div></div><div class="buy-tip">手枪免费配发 · 存活保留装备 · 交战开始自动关闭</div></div>
+</section>
+<section id="modal" class="screen hidden">
+ <div class="modal-content"><small>BEAN FRONTIER / SETTINGS</small><h2 id="modal-title">暂停一下</h2><p id="modal-copy">调整好手感，再回到战场。</p>
+ <div class="audio-settings"><button id="music" title="背景音乐">♫ 音乐</button><button id="sound" title="动作音效">♪ 音效</button></div>
+ <div id="mobile-settings" class="settings-grid">
+ <label for="camera-sensitivity">普通镜头 <output id="camera-sensitivity-value">100%</output><input id="camera-sensitivity" type="range" min="0.25" max="2" step="0.05" value="1"></label>
+ <label for="ads-sensitivity">精瞄镜头 <output id="ads-sensitivity-value">60%</output><input id="ads-sensitivity" type="range" min="0.1" max="2" step="0.05" value="0.6"></label>
+ <label for="sniper-sensitivity">狙击镜头 <output id="sniper-sensitivity-value">35%</output><input id="sniper-sensitivity" type="range" min="0.1" max="2" step="0.05" value="0.35"></label>
+ <label for="button-size" class="touch-setting">按钮大小 <output id="button-size-value">100%</output><input id="button-size" type="range" min="0.8" max="1.25" step="0.05" value="1"></label>
+ <label for="button-opacity" class="touch-setting">按钮透明度 <output id="button-opacity-value">72%</output><input id="button-opacity" type="range" min="0.35" max="1" step="0.05" value="0.72"></label>
+ <label for="fps-setting">渲染帧率 <select id="fps-setting"><option value="30">30 FPS · 省电稳定</option><option value="60">60 FPS · 更流畅</option></select></label>
+ <label class="check-setting touch-setting" for="aim-assist"><input id="aim-assist" type="checkbox" checked> 轻度瞄准减速辅助</label>
+ </div>
+ <div class="modal-actions"><button id="resume" class="primary">继续对局 ↗</button><button id="restart" class="secondary">重新开局</button><button id="home" class="text-button">返回首页</button></div>
+ <div id="help-copy" class="hidden">规则：每回合准备 15 秒、交战 90 秒，先赢五回合；第四回合结束后交换攻守。安包按住互动 3 秒，拆包 5 秒，炸弹 35 秒后引爆。移动、开火或松手会打断。阵亡后观战队友，下一回合复活。<br><br>电脑：WASD 移动，鼠标瞄准，左键射击，右键切换精瞄，空格跳跃，R 换弹，1 / 2 切枪，E 按住安拆包或点击拾枪，B 买枪，Esc 暂停，F 全屏。<br><br>手机：左摇杆小幅慢走、外圈跑动；右开火键按住射击并拖动瞄准，右侧空白处也可转镜头。点击开镜切换；跳跃、换弹与切枪独立操作；靠近包点按住互动，靠近掉落装备点击拾取。推荐横屏，设置中可调整灵敏度和按钮大小。</div>
+ </div>
+</section>
+<script type="module" src="/src/main.js"></script>
+</body></html>

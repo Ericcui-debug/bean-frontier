@@ -1,0 +1,42 @@
+{
+  "upstream": "guyz/tinystrike",
+  "commit": "04db555c4fc9f43fef3325c37930ad97a0c27aa3",
+  "license": "licenses/TinyStrike-ISC.txt",
+  "assets": [
+    {
+      "file": "src/assets/tinystrike/glock.glb",
+      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/assets/models/viewmodels/glock.glb",
+      "bytes": 78684,
+      "sha256": "062b5f7a6abb4befd3370fc03fc3a4f559799a8bcad1c843b5775acb9f9cfc34",
+      "license": "ISC"
+    },
+    {
+      "file": "src/assets/tinystrike/mp5.glb",
+      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/assets/models/viewmodels/mp5.glb",
+      "bytes": 78596,
+      "sha256": "ed1aa2c4b3fe973dbd1e29bc208762564f7c3ddf17751d75d4c09fab0109ac92",
+      "license": "ISC"
+    },
+    {
+      "file": "src/assets/tinystrike/ak47.glb",
+      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/assets/models/viewmodels/ak47.glb",
+      "bytes": 77928,
+      "sha256": "10cb53dc7af80ecc6737d257026e14c808868f88db206c049e172b5048280886",
+      "license": "ISC"
+    },
+    {
+      "file": "src/assets/tinystrike/awp.glb",
+      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/assets/models/viewmodels/awp.glb",
+      "bytes": 139200,
+      "sha256": "969843cecb93d114b162b7847aaf8fa688b1a561b24e4ce89f99ee5fd5088fed",
+      "license": "ISC"
+    },
+    {
+      "file": "src/visual/tinystrike-textures.js",
+      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/src/world/textures.js",
+      "bytes": 19019,
+      "sha256": "1de758464c29f93f4c2ebdbfa541ed5b54d2aec430af9c1db41b302e640ccc1c",
+      "license": "ISC"
+    }
+  ]
+}

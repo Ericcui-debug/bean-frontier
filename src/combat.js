@@ -1,6 +1,6 @@
 import {THREE,C} from './gfx.js';
 import {segmentSphere,clamp} from './physics.js';
-import {CHARACTER} from './dimensions.js';
+import {CHARACTER,stanceDimensions} from './dimensions.js';
 import {poseBean} from './character.js';
 export const WEAPONS=[
  {id:0,name:'糖豆手枪',price:0,mag:12,reserve:60,damage:20,interval:.24,reload:1.05,spread:.004,color:C.yellow},
@@ -21,11 +21,11 @@ export function createCombat({g,world,player,actors,getTime,onDown=()=>{},onHit=
  function resetActor(actor,keep=false){if(!keep||!actor.equipment?.[0]){actor.equipment=[{id:0,ammo:12,reserve:60},null];actor.slot=0;}else{for(const item of actor.equipment){if(!item)continue;item.ammo=WEAPONS[item.id].mag;item.reserve=WEAPONS[item.id].reserve;}if(!actor.equipment[actor.slot])actor.slot=0;}actor.cooldown=0;actor.reloadUntil=0;actor.reloadSlot=null;actor.recoil=0;actor.shots=0;actor.healthUntil=0;}
  function select(actor,slot){if(!actor.equipment?.[slot])return false;if(actor.slot===slot)return true;actor.slot=slot;actor.reloadUntil=0;actor.reloadSlot=null;actor.cooldown=Math.max(actor.cooldown||0,.12);return true;}
  function reload(actor=player){const item=current(actor),w=definition(actor);if(!actor.alive||actor.reloadUntil>now()||!item||item.ammo>=w.mag||item.reserve<=0)return false;actor.reloadSlot=actor.slot;actor.reloadUntil=now()+w.reload;if(actor===player)audio?.tone(330,.09,'triangle',.03);return true;}
- function actorHit(a,b,ignore){let best=null;for(const actor of actors){if(actor===ignore||!actor.alive)continue;for(const v of CHARACTER.hitVolumes){const t=segmentSphere(a,b,new THREE.Vector3(actor.x,actor.y+v.y,actor.z),v.r);if(t!==null&&(!best||t<best.t))best={t,actor,head:v.head};}}return best;}
+ function actorHit(a,b,ignore){let best=null;for(const actor of actors){if(actor===ignore||!actor.alive)continue;for(const v of stanceDimensions(actor).hitVolumes){const ratio=(v.ry??v.r)/v.r,from={x:a.x,y:actor.y+(a.y-actor.y)/ratio,z:a.z},to={x:b.x,y:actor.y+(b.y-actor.y)/ratio,z:b.z},t=segmentSphere(from,to,new THREE.Vector3(actor.x,actor.y+v.y/ratio,actor.z),v.r);if(t!==null&&(!best||t<best.t))best={t,actor,head:v.head};}}return best;}
  function trace(a,b,color){if(traces.length>=36){const old=traces.shift();old.mesh.removeFromParent();old.mesh.geometry.dispose();old.mesh.material.dispose();}const geometry=new THREE.BufferGeometry().setFromPoints([a,b]),mesh=new THREE.Line(geometry,new THREE.LineBasicMaterial({color,transparent:true,opacity:.75}));g.scene.add(mesh);traces.push({mesh,life:.055});}
- function damage(victim,amount,killer,head=false){if(!victim.alive||victim.team===killer.team)return false;const actual=amount*(head?2:victim.armor>0?.8:1);victim.hp=Math.max(0,victim.hp-actual);victim.healthUntil=now()+1.25;onHurt(victim);const killed=victim.hp<=0;if(killed){victim.alive=false;victim.group.visible=false;burst(new THREE.Vector3(victim.x,victim.y+CHARACTER.body.y,victim.z),victim.color,24);if(killer===player)state.kills++;onDown(victim,killer);}else burst(new THREE.Vector3(victim.x,victim.y+CHARACTER.aimHeight,victim.z),victim.color,5);if(killer===player){state.lastHit={victimId:victim.id,head,killed,damage:actual,time:now()};onHit(killed);audio?.tone(killed?920:670,.06,'sine',.035);}return killed;}
+ function damage(victim,amount,killer,head=false){if(!victim.alive||victim.team===killer.team)return false;const actual=amount*(head?2:victim.armor>0?.8:1);victim.hp=Math.max(0,victim.hp-actual);victim.healthUntil=now()+1.25;onHurt(victim);const killed=victim.hp<=0,size=stanceDimensions(victim);if(killed){victim.alive=false;victim.group.visible=false;burst(new THREE.Vector3(victim.x,victim.y+size.body.y,victim.z),victim.color,24);if(killer===player)state.kills++;onDown(victim,killer);}else burst(new THREE.Vector3(victim.x,victim.y+size.aimHeight,victim.z),victim.color,5);if(killer===player){state.lastHit={victimId:victim.id,head,killed,damage:actual,time:now()};onHit(killed);audio?.tone(killed?920:670,.06,'sine',.035);}return killed;}
  function fire(actor=player,camera=null){const item=current(actor),w=definition(actor);if(!actor.alive||!item||actor.cooldown>1e-7||actor.reloadUntil>now())return false;if(item.ammo<=0){reload(actor);return false;}
-  const eye=new THREE.Vector3(actor.x,actor.y+CHARACTER.eye,actor.z),dir=new THREE.Vector3();
+  const size=stanceDimensions(actor),eye=new THREE.Vector3(actor.x,actor.y+size.eye,actor.z),dir=new THREE.Vector3();
   if(camera){camera.getWorldDirection(dir);eye.copy(camera.position);}else if(actor.aimTarget){dir.copy(actor.aimTarget).sub(eye).normalize();}else return false;
   if(!Number.isFinite(dir.x+dir.y+dir.z)||dir.lengthSq()<.9)return false;
   const gunDirection=dir.clone();
@@ -41,10 +41,10 @@ export function createCombat({g,world,player,actors,getTime,onDown=()=>{},onHit=
    // AI fires before its movement/pose pass: sync to this actor's current
    // position and aim so the obstruction ray starts at the visible barrel.
    actor.yaw=Math.atan2(gunDirection.x,-gunDirection.z);actor.gunPitch=-Math.asin(clamp(gunDirection.y,-1,1));poseBean(actor,now(),true);actor.group.updateMatrixWorld(true);actor.muzzle.getWorldPosition(muzzle);
-  }else{muzzle.copy(eye).addScaledVector(right,CHARACTER.fallbackMuzzle.right).addScaledVector(dir,CHARACTER.fallbackMuzzle.forward);muzzle.y-=CHARACTER.fallbackMuzzle.down;}
+  }else{muzzle.copy(eye).addScaledVector(right,size.fallbackMuzzle.right).addScaledVector(dir,size.fallbackMuzzle.forward);muzzle.y-=size.fallbackMuzzle.down;}
   const obstruction=world.blocked(eye,muzzle,.025);let hit=null,wall=null,end;
   if(obstruction){wall=obstruction;end=eye.clone().lerp(muzzle,obstruction.t);}else{wall=world.blocked(muzzle,target);hit=actorHit(muzzle,target,actor);if(hit&&(!wall||hit.t<wall.t))end=muzzle.clone().lerp(target,hit.t);else{hit=null;end=wall?muzzle.clone().lerp(target,wall.t):target;}}
-  trace(muzzle,end,w.color);if(hit){damage(hit.actor,w.damage,actor,hit.head);}else if(wall)burst(end,w.color,4);
+  trace(muzzle,end,w.color);if(hit){damage(hit.actor,w.damage,actor,hit.head);}else if(wall){world.damageSolid?.(wall.solid,w.damage,actor);burst(end,w.color,4);}
   return true;
  }
  function update(dt){for(const actor of actors){actor.cooldown=Math.max(0,(actor.cooldown||0)-dt);actor.recoil=Math.max(0,(actor.recoil||0)-dt*5);if(actor.reloadUntil>0&&actor.reloadUntil<=now()+1e-8){const item=actor.equipment?.[actor.reloadSlot];if(item){const need=Math.min(WEAPONS[item.id].mag-item.ammo,item.reserve);item.ammo+=need;item.reserve-=need;}actor.reloadUntil=0;actor.reloadSlot=null;}}
@@ -53,6 +53,6 @@ export function createCombat({g,world,player,actors,getTime,onDown=()=>{},onHit=
  }
  function clearEffects(){for(const p of particles)p.mesh.removeFromParent();for(const t of traces){t.mesh.removeFromParent();t.mesh.geometry.dispose();t.mesh.material.dispose();}particles.length=traces.length=0;state.lastHit=null;}
  function resetStats(){state.shots=0;state.kills=0;state.lastHit=null;}
- function aimSlowdown(camera=g.camera){const dir=new THREE.Vector3();camera.getWorldDirection(dir);for(const actor of actors){if(!actor.alive||actor.team===player.team)continue;const center=new THREE.Vector3(actor.x,actor.y+CHARACTER.aimHeight,actor.z),offset=center.clone().sub(camera.position);if(offset.length()<40&&offset.normalize().dot(dir)>.995&&!world.blocked(camera.position,center))return .65;}return 1;}
+ function aimSlowdown(camera=g.camera){const dir=new THREE.Vector3();camera.getWorldDirection(dir);for(const actor of actors){if(!actor.alive||actor.team===player.team)continue;const center=new THREE.Vector3(actor.x,actor.y+stanceDimensions(actor).aimHeight,actor.z),offset=center.clone().sub(camera.position);if(offset.length()<40&&offset.normalize().dot(dir)>.995&&!world.blocked(camera.position,center))return .65;}return 1;}
  return {state,get inventory(){return player.equipment;},particles,traces,equip,resetActor,select,reload,fire,update,clearEffects,burst,resetStats,aimSlowdown,actorHit,damage};
 }
