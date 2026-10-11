@@ -76,3 +76,46 @@ body.touch #interaction-progress{left:calc(var(--arsenal-x) - 26px);top:calc(var
 body.touch #hud.context-action .objective-strip{visibility:hidden}
 #crosshair i:nth-child(1){top:calc(-3px - var(--spread,0px))}#crosshair i:nth-child(2){bottom:calc(-3px - var(--spread,0px))}#crosshair i:nth-child(3){left:calc(-3px - var(--spread,0px))}#crosshair i:nth-child(4){right:calc(-3px - var(--spread,0px))}
 body.touch #hud.context-action #toast{visibility:hidden}
+
+/* A shared visual viewport keeps controls, the rendered view and gestures in
+   the same coordinate system when Safari's address bar changes size. */
+.screen,#hud{inset:auto;left:var(--viewport-left,0px);top:var(--viewport-top,0px);width:var(--viewport-width,100%);height:var(--viewport-height,100%)}
+.modal-content,.buy-content{max-height:calc(var(--viewport-height,100dvh) - var(--safe-top) - var(--safe-bottom) - 30px)}
+body.touch #look-zone{left:var(--safe-left);top:var(--safe-top);right:var(--safe-right);bottom:var(--safe-bottom)}
+body.touch #spectate-hud,body.touch .tools,body.touch #arsenal{z-index:10}
+body.touch #health-text{font-size:20px}
+body.touch #armor-text,body.touch #money,body.touch #reload-state,body.touch #weapons button,body.touch #weapons em,body.touch .match-strip #round-label,body.touch .match-strip #alive-count,body.touch .objective-strip,body.touch #toast,body.touch #interact-hint,body.touch #interaction-progress,body.touch #rotate-hint,body.touch #buy-open,body.touch #touch button span,body.touch #fire-button span,body.touch #spectate-hud,body.touch #spectate-hud button{font-size:11px;line-height:1.25}
+body.touch .map-key{font-size:11px;padding:2px 4px;max-width:var(--map-w);height:19px;overflow:hidden;gap:0}
+body.touch .map-key #map-name{display:none}
+body.touch .map-key #region-name{font-size:11px;line-height:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.touch .match-strip{column-gap:6px;padding:2px 6px;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+body.touch .match-strip #round-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
+body.touch .match-strip #alive-count{white-space:nowrap}
+body.touch #interact-hint{line-height:1.3;max-width:36%;padding:4px 7px}
+body.touch .screen small,body.touch .lobby-details,body.touch .eyebrow,body.touch .lobby-copy p,body.touch .map-picker-heading,body.touch .map-card-copy,body.touch .map-card-title small,body.touch .side-picker button span,body.touch .selected-map,body.touch .buy-card small,body.touch .buy-tip,body.touch .tactic-picker,body.touch .settings-grid,body.touch .modal-content p,body.touch .buy-content p{font-size:11px;line-height:1.45;letter-spacing:0}
+body.touch .primary,body.touch .secondary,body.touch .text-button,body.touch .close-button,body.touch .tactic-picker button{min-height:44px;min-width:44px}
+body.touch .audio-settings{flex-wrap:wrap}
+#timer.danger{color:#ffbdac;font-weight:900;text-shadow:0 0 8px #ff5d5166}
+#timer.danger:before{content:'! ';font-size:11px}
+#onboarding{z-index:40;justify-content:center;background:#102f37e8;backdrop-filter:blur(5px)}
+.guide-content{width:min(560px,100%);max-height:calc(var(--viewport-height,100dvh) - var(--safe-top) - var(--safe-bottom) - 30px);overflow:auto;border:1px solid #fff6d744;border-top:3px solid var(--gold);border-radius:12px;background:#21484b;padding:24px;color:#fff8e8}
+.guide-content header{display:flex;align-items:center;gap:14px;font-size:12px;color:#d5e7df}
+.guide-content header strong{color:var(--gold);margin-left:auto;font-variant-numeric:tabular-nums}
+.guide-content header button{padding:8px 10px}
+#guide-icon{height:66px;font-size:56px;line-height:1.1;color:var(--gold);margin:12px 0}
+.guide-content h2{font-size:25px;margin:10px 0}
+.guide-content p{font-size:14px;line-height:1.7;margin:8px 0 16px}
+.guide-content>small{display:block;font-size:11px;color:#cce3d7}
+.guide-content footer{display:flex;justify-content:space-between;gap:12px;margin-top:24px}
+@media(max-height:420px){.guide-content{padding:12px 20px}#guide-icon{float:right;height:40px;font-size:38px;margin:4px 0 0 12px}.guide-content h2{font-size:20px;margin:6px 0}.guide-content p{font-size:12px;line-height:1.5;margin:6px 0 10px}.guide-content footer{margin-top:14px}.guide-content .primary{font-size:14px;padding:10px 20px}}
+@media(orientation:portrait){body.touch #interact-hint{max-width:46%}}
+
+/* SVG coordinates span roughly 98 metres; 13 units stay legible on the 86 px minimap. */
+body.touch #map text{paint-order:stroke;stroke:#163e45;stroke-width:1.2px;font-weight:900}
+
+body.touch #weapons button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Spectator controls use the released right-thumb area. Keep the watched
+   weapon and ammo readable in landscape and the portrait fallback. */
+body.touch #spectate-hud{left:auto;right:calc(var(--safe-right) + 14px);top:auto;bottom:calc(var(--safe-bottom) + 16px);transform:none;width:clamp(112px,calc(112px * var(--control-size)),140px);padding:6px;display:grid;gap:4px;white-space:normal}
+body.touch #spectate-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+body.touch #spectate-hud button{width:100%;min-width:44px;min-height:max(44px,calc(44px * var(--control-size)));padding:6px;font-size:11px;line-height:1.25}

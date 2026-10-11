@@ -59,7 +59,7 @@
 </section>
 <section id="modal" class="screen hidden">
  <div class="modal-content"><small>BEAN FRONTIER / SETTINGS</small><h2 id="modal-title">暂停一下</h2><p id="modal-copy">调整好手感，再回到战场。</p>
- <div class="audio-settings"><button id="music" title="背景音乐">♫ 音乐</button><button id="sound" title="动作音效">♪ 音效</button></div>
+ <div class="audio-settings"><button id="music" title="背景音乐">♫ 音乐</button><button id="sound" title="动作音效">♪ 音效</button><button id="guide-replay" title="再次查看手机操作引导">操作引导</button></div>
  <div id="mobile-settings" class="settings-grid">
  <label for="camera-sensitivity">普通镜头 <output id="camera-sensitivity-value">100%</output><input id="camera-sensitivity" type="range" min="0.25" max="2" step="0.05" value="1"></label>
  <label for="ads-sensitivity">精瞄镜头 <output id="ads-sensitivity-value">60%</output><input id="ads-sensitivity" type="range" min="0.1" max="2" step="0.05" value="0.6"></label>
@@ -71,6 +71,13 @@
  </div>
  <div class="modal-actions"><button id="resume" class="primary">继续对局 ↗</button><button id="restart" class="secondary">重新开局</button><button id="home" class="text-button">返回首页</button></div>
  <div id="help-copy" class="hidden">两图：Assault 仓库救援、Dust2 沙城爆破。每回合购买 15 秒、交战 180 秒，先赢五回合；第四回合后换边，存活装备与资金保留。<br><br>救援：反恐方点击互动带领人质，可带多人，再次点击停止跟随；四名中救出两名即可获胜。人质走楼梯和地面，领队阵亡后等待接管。守卫全灭反恐胜，反恐全灭或超时守卫胜。<br><br>爆破：安包按住互动 3 秒，拆包 5 秒，C4 安放 35 秒后爆炸。移动、跳跃、开火或松手会打断。阵亡后观战队友，下一回合复活。<br><br>电脑：WASD 移动，鼠标瞄准，左键射击，右键精瞄，空格跳跃，R 换弹，1 / 2 切枪，E 互动人质、开门或拾枪，按住 E 安拆包，B 购买，Esc 暂停，F 全屏。面对梯子 W / S 攀爬，跳跃脱离；进入通风管自动低姿。<br><br>手机：左摇杆小幅慢走、外圈跑动；右开火键按住射击并拖动瞄准，右侧空白处也可转镜头。点击开镜切换；跳跃、换弹与切枪独立。面对梯子前推 / 后推攀爬，进入通风管自动低姿；人质和门点击互动，安拆包按住互动。推荐横屏，设置中可调灵敏度、按钮大小与透明度。瞄准辅助只减速，不会自动转向或开火。</div>
+ </div>
+</section>
+<section id="onboarding" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title" aria-describedby="guide-copy">
+ <div class="guide-content">
+  <header><span>双指操作指南</span><strong id="guide-step">1 / 3</strong><button id="guide-skip" class="text-button">跳过</button></header>
+  <div id="guide-icon" aria-hidden="true">↔</div><h2 id="guide-title">左手移动，右手瞄准</h2><p id="guide-copy"></p><small id="guide-caption"></small>
+  <footer><button id="guide-back" class="secondary" disabled>上一步</button><button id="guide-next" class="primary">下一步 →</button></footer>
  </div>
 </section>
 <script type="module" src="/src/main.js"></script>

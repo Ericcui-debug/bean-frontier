@@ -1,12 +1,15 @@
 import {THREE,C} from './gfx.js';
 import {CHARACTER,stanceDimensions} from './dimensions.js';
 import {createWeaponVisual} from './weapon-models.js';
+// Lifetime-shared geometry: never dispose a buffer still used by another
+// soldier, hostage, or instanced part bucket during a round reset.
+const torsoGeometry=new THREE.CapsuleGeometry(.53,.7,8,20),armGeometry=new THREE.CapsuleGeometry(.145,.46,5,12);
 // Original Bean Blitz proportions, scaled once at the visual body root.
 export function createBean(g,color=C.pink){
  const group=new THREE.Group(),body=new THREE.Group();body.scale.setScalar(CHARACTER.scale);group.add(body);g.scene.add(group);
- const torso=g.mesh(new THREE.CapsuleGeometry(.53,.7,12,32),color,body);torso.position.y=1.05;
+ const torso=g.mesh(torsoGeometry,color,body);torso.position.y=1.05;
  g.ball(0,1.24,-.475,.35,.4,.092,C.cream,body);for(const x of [-.12,.12])g.ball(x,1.28,-.558,.047,.1,.024,C.dark,body);
- const arms=[];for(const s of [-1,1]){const joint=new THREE.Group();joint.position.set(s*.4,1.42,0);body.add(joint);const arm=g.mesh(new THREE.CapsuleGeometry(.145,.46,5,16),color,joint);arm.position.set(s*.08,-.34,0);joint.rotation.z=s*.3;arms.push(joint);}
+ const arms=[];for(const s of [-1,1]){const joint=new THREE.Group();joint.position.set(s*.4,1.42,0);body.add(joint);const arm=g.mesh(armGeometry,color,joint);arm.position.set(s*.08,-.34,0);joint.rotation.z=s*.3;arms.push(joint);}
  const sleeves=arms.map((joint,i)=>g.ball(i===0?-.04:.04,-.23,0,.16,.22,.16,0x354c62,joint));
  const gloves=arms.map((joint,i)=>g.ball(i===0?-.08:.08,-.55,-.01,.15,.13,.15,0x253239,joint));
  const feet=[-1,1].map(s=>g.ball(s*.26,.17,-.055,.225,.17,.31,0x253239,body));
@@ -27,8 +30,9 @@ export function createBean(g,color=C.pink){
  // Scene materials are cached by color. Fade only this bean's private copies;
  // never make crates, enemies or paint effects transparent with the player.
  const copies=new Map(),displayMaterials=[];body.traverse(o=>{if(!o.isMesh)return;const shared=o.material;if(!copies.has(shared)){const copy=shared.clone();copies.set(shared,copy);displayMaterials.push(copy);}o.material=copies.get(shared);});
- const ownedGeometries=[torso.geometry,...arms.map(a=>a.children[0].geometry),barrel.geometry,hat.geometry];
- return {group,body,arms,sleeves,gloves,feet,gunRig,gun,muzzle,hat,vest,vestPanels,badge,fallbackGun,weaponVisuals:new Map(),visualWeaponId:-1,visualFaction:null,health,healthFill:fill,displayMaterials,ownedGeometries,avatarOpacity:1,healthUntil:0,aiming:false,phase:0,recoil:0,color,x:0,y:0,z:0,vx:0,vy:0,vz:0,yaw:0,hp:100,maxHp:100,grounded:true,radius:CHARACTER.radius,height:CHARACTER.height,alive:true};
+ const ownedGeometries=g.sharedCylinders?[]:[barrel.geometry,hat.geometry];
+ const actor={group,body,arms,sleeves,gloves,feet,gunRig,gun,muzzle,hat,vest,vestPanels,badge,fallbackGun,weaponVisuals:new Map(),visualWeaponId:-1,visualFaction:null,health,healthFill:fill,displayMaterials,ownedGeometries,avatarOpacity:1,healthUntil:0,aiming:false,phase:0,recoil:0,color,x:0,y:0,z:0,vx:0,vy:0,vz:0,yaw:0,hp:100,maxHp:100,grounded:true,radius:CHARACTER.radius,height:CHARACTER.height,alive:true};
+ if(g.actorBatches){g.actorBatches.register(actor);actor.actorBatches=g.actorBatches;}return actor;
 }
 export function updateBeanWeapon(r){
  if(!r.weaponVisuals)return;r.vest.visible=!r.isHostage;if(r.isHostage){r.gun.visible=false;return;}const id=r.equipment?.[r.slot||0]?.id??0;
@@ -49,7 +53,7 @@ export function poseBean(r,time,aim=false){
  r.healthFill.scale.x=Math.max(.001,r.hp/r.maxHp);r.healthFill.position.x=-(1-r.hp/r.maxHp)*.52;
 }
 const displayPoint=new THREE.Vector3(),barPoint=new THREE.Vector3(),inverseParent=new THREE.Quaternion(),armDirection=new THREE.Vector3(),armDown=new THREE.Vector3(0,-1,0);
-export function disposeBean(r){for(const visual of r.weaponVisuals?.values()??[])visual.dispose();for(const geo of r.ownedGeometries)geo.dispose();for(const m of r.displayMaterials)m.dispose();r.health.traverse(o=>{if(o.isMesh)o.material.dispose();});r.group.removeFromParent();}
+export function disposeBean(r){r.actorBatches?.unregister(r);for(const visual of r.weaponVisuals?.values()??[])visual.dispose();for(const geo of r.ownedGeometries)geo.dispose();for(const m of r.displayMaterials)m.dispose();r.health.traverse(o=>{if(o.isMesh)o.material.dispose();});r.group.removeFromParent();}
 export function updateBeanDisplay(r,camera,world,time,isPlayer=false){
  const opacity=(isPlayer||r.firstPersonHidden)?0:1;r.body.visible=!!r.alive&&opacity>.015;
  for(const m of r.displayMaterials){if(opacity<.999&&!m.transparent){m.transparent=true;m.needsUpdate=true;}m.opacity=opacity;m.depthWrite=opacity>.5;}

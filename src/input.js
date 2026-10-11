@@ -1,4 +1,5 @@
 import {clamp} from './physics.js';
+import {refreshViewport} from './viewport.js';
 
 // Pure geometry makes the maximum-size layout testable without a browser.
 export function computeTouchLayout({width,height,safe={},size=1}){
@@ -9,13 +10,13 @@ export function computeTouchLayout({width,height,safe={},size=1}){
  const rowY=bottom-fire-gap-small-(portrait?small+gap:0),fireX=right-fire;
  const positions={stick:[stickX,stickY,stick,stick],fire:[fireX,bottom-fire,fire,fire],aim:[fireX-gap-small,bottom-small,small,small],jump:[right-small,rowY,small,small],reload:[right-small*2-gap,rowY,small,small],interact:[right-small*3-gap*2,rowY,small,small]};
  if(portrait)positions.aim=[right-small,bottom-fire-gap-small,small,small];
- const healthY=stickY-42;
+ const healthY=stickY-40;
  positions.left=portrait?[stickX,healthY-gap-left,left,left]:[stickX+stick+12,stickY-left+6,left,left];
  const weaponW=104,weaponY=portrait?rowY-70:bottom-44,weaponX=portrait?right-weaponW:(l+(width-l-r)/2-weaponW/2);
  const mapW=narrow?86:110,mapH=narrow?70:88,mapY=portrait?t+76:t+10;
  const toolsX=right-144,stripX=portrait?stickX:stickX+mapW+12,stripW=portrait?toolsX-gap-stickX:Math.min(242,toolsX-gap-stripX);
  const hintY=portrait?height/2-70:Math.min(rowY-28,height/2-44);
- return {portrait,width,height,safe:{left:l,right:r,top:t,bottom:b},small,fire,stick,positions,health:[stickX,healthY,Math.min(124,stick),34],arsenal:[weaponX,weaponY,weaponW,44],map:[stickX,mapY,mapW,mapH],tools:[toolsX,t+8,144,44],strip:[stripX,t+8,stripW,44],objective:portrait?[stickX+mapW+12,t+76,width-r-pad-stickX-mapW-12]:[l+(width-l-r)/2,t+58,Math.min(260,width-l-r-220)],hintY};
+ return {portrait,width,height,safe:{left:l,right:r,top:t,bottom:b},small,fire,stick,positions,health:[stickX,healthY,Math.min(124,stick),38],arsenal:[weaponX,weaponY,weaponW,44],map:[stickX,mapY,mapW,mapH],tools:[toolsX,t+8,144,44],strip:[stripX,t+8,stripW,44],objective:portrait?[stickX+mapW+12,t+76,width-r-pad-stickX-mapW-12]:[l+(width-l-r)/2,t+58,Math.min(260,width-l-r-220)],hintY};
 }
 
 // Each pointer owns one action. Camera ownership can transfer without replaying
@@ -26,14 +27,14 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
  const keys=new Set(),actions=new Map(),lookPointers=new Map();
  const stick=document.querySelector('#move-stick'),thumb=stick.querySelector('b'),look=document.querySelector('#look-zone');
  const state={x:0,z:0,fire:false,aim:false,interactHeld:false,mobile};
- const safeProbe=document.createElement('div');safeProbe.style.cssText='position:fixed;visibility:hidden;pointer-events:none;padding-left:var(--safe-left);padding-right:var(--safe-right);padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)';document.body.appendChild(safeProbe);
+ const stickVector={x:0,z:0};
  const sensitivity={look:1,ads:.6,sniper:.35},layout={size:1,opacity:.72};
- let stickId=null,lookId=null,drag=null,touchAim=false,hadPointerLock=false;
+ let stickId=null,lookId=null,drag=null,touchAim=false,hadPointerLock=false,mouseFire=false;
  let metrics={width:Math.max(240,innerWidth),stick:{x:0,y:0,radius:40}},metricsFrame=0;
  function refreshMetrics(){
   metricsFrame=0;
-  const css=getComputedStyle(safeProbe),safe={left:parseFloat(css.paddingLeft)||0,right:parseFloat(css.paddingRight)||0,top:parseFloat(css.paddingTop)||0,bottom:parseFloat(css.paddingBottom)||0};
-  const width=window.visualViewport?.width||innerWidth,height=window.visualViewport?.height||innerHeight;
+  const viewport=refreshViewport(),{width,height,offsetLeft,offsetTop}=viewport;
+  const safe={left:viewport.left,right:viewport.right,top:viewport.top,bottom:viewport.bottom};
   const geometry=computeTouchLayout({width,height,safe,size:layout.size}),root=document.documentElement.style;
   if(mobile){
    for(const [key,rect] of Object.entries(geometry.positions))for(let i=0;i<4;i++)root.setProperty(`--${key}-${['x','y','w','h'][i]}`,rect[i]+'px');
@@ -41,7 +42,7 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
    root.setProperty('--objective-x',geometry.objective[0]+'px');root.setProperty('--objective-y',geometry.objective[1]+'px');root.setProperty('--objective-w',geometry.objective[2]+'px');root.setProperty('--hint-y',geometry.hintY+'px');
   }
   const rect=stick.getBoundingClientRect(),thumbWidth=thumb.getBoundingClientRect().width;
-  metrics={width:Math.max(240,width-safe.left-safe.right),height,safe,geometry,stick:{x:rect.left+rect.width/2,y:rect.top+rect.height/2,radius:Math.max(20,rect.width/2-thumbWidth/2-4)}};
+  metrics={width:Math.max(240,width-safe.left-safe.right),height,offsetLeft,offsetTop,safe,geometry,stick:{x:rect.left+rect.width/2,y:rect.top+rect.height/2,radius:Math.max(20,rect.width/2-thumbWidth/2-4)}};
  }
  function scheduleMetrics(){if(!metricsFrame)metricsFrame=requestAnimationFrame(refreshMetrics);}
  for(const event of ['resize','orientationchange','pageshow'])window.addEventListener(event,scheduleMetrics);
@@ -55,17 +56,17 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
  const prevent=e=>{if(e.cancelable)e.preventDefault();};
  const capture=(el,id)=>{try{el.setPointerCapture(id);}catch{}};
  const fireAction=a=>a==='fire'||a==='fire-left';
- function refreshHeld(){state.fire=[...actions.values()].some(v=>fireAction(v.action));state.interactHeld=keys.has('KeyE')||[...actions.values()].some(v=>v.action==='interact');}
+ function refreshHeld(){state.fire=mouseFire||[...actions.values()].some(v=>fireAction(v.action));state.interactHeld=keys.has('KeyE')||[...actions.values()].some(v=>v.action==='interact');}
  function reset(){
   const captures=new Map([...actions].map(([id,v])=>[id,v.el]));
   for(const [id,v] of lookPointers)captures.set(id,v.el);
   if(stickId!==null)captures.set(stickId,stick);
-  keys.clear();actions.clear();lookPointers.clear();stickId=lookId=null;drag=null;touchAim=false;
+  keys.clear();actions.clear();lookPointers.clear();stickId=lookId=null;drag=null;touchAim=mouseFire=false;stickVector.x=stickVector.z=0;
   state.x=state.z=0;state.fire=state.aim=state.interactHeld=false;thumb.style.transform='';
   document.querySelectorAll('#touch .pressed,#touch .selected').forEach(b=>b.classList.remove('pressed','selected'));
   for(const [id,el] of captures)try{if(el.hasPointerCapture(id))el.releasePointerCapture(id);}catch{}
  }
- function interrupt(){reset();onPause();}
+ function interrupt(reason='input-interrupted'){reset();onPause(reason);}
  function getSensitivity(){return {...sensitivity};}
  function setSensitivity(values={}){
   for(const [key,min,max] of [['look',.25,2],['ads',.1,2],['sniper',.1,2]])if(Number.isFinite(values[key]))sensitivity[key]=clamp(values[key],min,max);
@@ -89,28 +90,32 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
   return factor*(touch?Math.PI/metrics.width:.003)*clamp(Number.isFinite(slowdown)?slowdown:1,.45,1);
  }
  window.addEventListener('keydown',e=>{
-  if(e.target instanceof HTMLElement&&e.target.matches('input,select,textarea'))return;
+  if(e.target instanceof HTMLElement&&(e.target.matches('input,select,textarea')||(e.target.matches('button')&&e.target.closest('.screen:not(.hidden)')&&['Space','Enter'].includes(e.code))))return;
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))prevent(e);
   if(e.repeat)return;
   if(e.code==='Escape'){onPause();return;}
   if(e.code==='KeyF'){onAction('fullscreen');return;}
   if(!playing()){if(e.code==='Enter')onAction('start');if(e.code==='KeyB')onAction('buy');return;}
-  keys.add(e.code);if(e.code==='KeyE')state.interactHeld=true;
+  keys.add(e.code);combineMovement();if(e.code==='KeyE')state.interactHeld=true;
   const action={Space:'jump',KeyR:'reload',KeyE:'interact',Digit1:'weapon0',Digit2:'weapon1',KeyB:'buy'}[e.code];
   if(action)onAction(action);
  });
- window.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='KeyE')refreshHeld();});
+ window.addEventListener('keyup',e=>{keys.delete(e.code);combineMovement();if(e.code==='KeyE')refreshHeld();});
  canvas.addEventListener('contextmenu',prevent);
- canvas.addEventListener('pointerdown',e=>{
-  if(e.pointerType==='touch'||!playing())return;
-  if(e.button===0)state.fire=true;
+ function beginMouse(e){
+  if(!playing())return;
+  if(e.button===0){mouseFire=true;refreshHeld();}
   if(e.button===2){touchAim=!touchAim;state.aim=touchAim;}
   drag={x:e.clientX,y:e.clientY};
   if(document.pointerLockElement!==canvas&&canvas.requestPointerLock)try{canvas.requestPointerLock()?.catch?.(()=>{});}catch{}
- });
- window.addEventListener('pointerup',e=>{if(e.pointerType==='touch')return;if(e.button===0)refreshHeld();drag=null;});
+ }
+ canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||e.pointerType==='pen')return;beginMouse(e);});
+ // Window-level release also covers a failed capture or a release outside its element.
+ window.addEventListener('pointerup',e=>{release(e);if(e.pointerType==='touch'||e.pointerType==='pen')return;if(e.button===0){mouseFire=false;refreshHeld();}drag=null;});
+ window.addEventListener('mouseup',e=>{if(e.button===0){mouseFire=false;refreshHeld();}drag=null;});
+ window.addEventListener('pointercancel',()=>interrupt('touch-cancel'),true);
  window.addEventListener('mousemove',e=>{
-  if(!playing()||mobile)return;
+  if(!playing()||lookId!==null)return;
   const factor=lookFactor(false);
   if(document.pointerLockElement===canvas)onLook(e.movementX*factor,-e.movementY*factor);
   else if(drag){onLook((e.clientX-drag.x)*factor,-(e.clientY-drag.y)*factor);drag={x:e.clientX,y:e.clientY};}
@@ -119,33 +124,35 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
   const locked=document.pointerLockElement===canvas;
   if(hadPointerLock&&!locked&&playing())interrupt();hadPointerLock=locked;
  });
- window.addEventListener('blur',interrupt);window.addEventListener('pagehide',interrupt);
- document.addEventListener('visibilitychange',()=>{if(document.hidden)interrupt();});
- window.addEventListener('orientationchange',interrupt);
- screen.orientation?.addEventListener?.('change',interrupt);
+ window.addEventListener('blur',()=>interrupt('blur'));window.addEventListener('pagehide',()=>interrupt('background'));
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)interrupt('background');});
+ window.addEventListener('orientationchange',()=>interrupt('rotation'));
+ screen.orientation?.addEventListener?.('change',()=>interrupt('rotation'));
  function stickMove(e){
   const {radius,x,y}=metrics.stick;
   const dx=e.clientX-x,dz=e.clientY-y,length=Math.hypot(dx,dz),m=Math.min(1,length/radius);
   const power=Math.max(0,(m-.1)/.9);
   thumb.style.transform=`translate(${length?dx/length*m*radius:0}px,${length?dz/length*m*radius:0}px)`;
-  state.x=length?dx/length*power:0;state.z=length?-dz/length*power:0;
+  stickVector.x=length?dx/length*power:0;stickVector.z=length?-dz/length*power:0;combineMovement();
  }
- function beginLook(e,el){lookPointers.set(e.pointerId,{el,x:e.clientX,y:e.clientY});if(lookId===null)lookId=e.pointerId;capture(el,e.pointerId);}
+ function beginLook(e,el){lookPointers.set(e.pointerId,{el,x:e.clientX,y:e.clientY,touch:e.pointerType!=='mouse'});if(lookId===null)lookId=e.pointerId;capture(el,e.pointerId);}
  function moveLook(e){
   const item=lookPointers.get(e.pointerId);if(!item)return;prevent(e);
-  if(playing()&&e.pointerId===lookId){const factor=lookFactor(true);onLook((e.clientX-item.x)*factor,-(e.clientY-item.y)*factor);}
+  if(playing()&&e.pointerId===lookId){const factor=lookFactor(item.touch);onLook((e.clientX-item.x)*factor,-(e.clientY-item.y)*factor);}
   item.x=e.clientX;item.y=e.clientY;
  }
  function release(e){
-  if(e.pointerId===stickId){stickId=null;state.x=state.z=0;thumb.style.transform='';}
+  if(e.pointerId===stickId){stickId=null;stickVector.x=stickVector.z=0;combineMovement();thumb.style.transform='';}
   lookPointers.delete(e.pointerId);if(e.pointerId===lookId)lookId=lookPointers.keys().next().value??null;
   const item=actions.get(e.pointerId);
   if(item){actions.delete(e.pointerId);if(![...actions.values()].some(v=>v.el===item.el))item.el.classList.remove('pressed');refreshHeld();}
  }
- function attachRelease(el){el.addEventListener('pointerup',release);el.addEventListener('lostpointercapture',release);el.addEventListener('pointercancel',interrupt);}
+ function attachRelease(el){el.addEventListener('pointerup',release);el.addEventListener('lostpointercapture',release);}
  stick.addEventListener('pointerdown',e=>{prevent(e);if(!playing()||stickId!==null)return;stickId=e.pointerId;capture(stick,stickId);stickMove(e);});
  stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId){prevent(e);stickMove(e);}});attachRelease(stick);attachRelease(look);
- look.addEventListener('pointerdown',e=>{prevent(e);if(playing())beginLook(e,look);});look.addEventListener('pointermove',moveLook);
+ look.addEventListener('pointerdown',e=>{prevent(e);if(!playing())return;if(e.pointerType==='mouse')beginMouse(e);else beginLook(e,look);});
+ // One global move handler also updates passive fingers after a failed capture.
+ window.addEventListener('pointermove',moveLook);
  document.querySelectorAll('[data-action]').forEach(el=>{
   el.addEventListener('pointerdown',e=>{
    prevent(e);if(!playing())return;
@@ -154,16 +161,20 @@ export function createInput({canvas,onLook,onPause,onAction,playing,getScope=()=
    else if(action==='aim'){touchAim=!touchAim;state.aim=touchAim;el.classList.toggle('selected',touchAim);}
    else{if(action==='interact')refreshHeld();onAction(action);}
   });
-  if(el.dataset.action==='fire')el.addEventListener('pointermove',moveLook);attachRelease(el);
+  attachRelease(el);
  });
  const touch=document.querySelector('#touch');
  const visibilityObserver=new MutationObserver(scheduleMetrics);
  for(const el of [touch,document.querySelector('#hud')])visibilityObserver.observe(el,{attributes:true,attributeFilter:['class']});
  for(const event of ['contextmenu','selectstart','dragstart'])touch.addEventListener(event,prevent);
  for(const event of ['touchstart','touchmove'])touch.addEventListener(event,prevent,{passive:false});
+ function combineMovement(){
+  const x=stickVector.x+Number(keys.has('KeyD'))-Number(keys.has('KeyA')),z=stickVector.z+Number(keys.has('KeyW'))-Number(keys.has('KeyS')),length=Math.hypot(x,z),scale=length>1?1/length:1;
+  state.x=x*scale;state.z=z*scale;
+ }
  function sample(){
   if(!playing())return {...state,x:0,z:0,fire:false,aim:false,interactHeld:false};
-  if(!mobile){state.x=Number(keys.has('KeyD'))-Number(keys.has('KeyA'));state.z=Number(keys.has('KeyW'))-Number(keys.has('KeyS'));refreshHeldDesktop();}
+  combineMovement();refreshHeldDesktop();
   return state;
  }
  function refreshHeldDesktop(){state.interactHeld=keys.has('KeyE')||[...actions.values()].some(v=>v.action==='interact');}

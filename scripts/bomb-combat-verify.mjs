@@ -28,6 +28,17 @@ enemy.alive=true;enemy.hp=100;player.alive=true;player.cooldown=0;
 g.camera.position.set(0,CHARACTER.eye,0);g.camera.lookAt(0,CHARACTER.body.y,-10);g.camera.updateMatrixWorld(true);
 const muzzle=new THREE.Object3D();muzzle.position.set(.4,1.05,-.6);g.scene.add(muzzle);g.camera.userData.muzzle=muzzle;
 solids.push({x0:.2,x1:.6,y0:.8,y1:1.5,z0:-.7,z1:-.25});combat.fire(player,g.camera);assert.equal(enemy.hp,100,'eye-to-muzzle obstruction blocks hit');solids.length=0;g.camera.userData.muzzle=null;muzzle.removeFromParent();combat.clearEffects();
+// Decimal wall endpoints must still create a surface impact from the barrel,
+// even when the camera ray's lerp rounds a fraction before the hit face.
+{
+ let impacts=0;world.damageSolid=()=>impacts++;
+ for(let i=0;i<100;i++){
+  combat.resetActor(player);player.aimTarget=new THREE.Vector3(0,CHARACTER.body.y,-10);enemy.alive=true;enemy.hp=100;
+  const z=-5-i*.000123456789;solids.push({x0:-1,x1:1,y0:0,y1:3,z0:z-1,z1:z});combat.fire(player);assert.equal(enemy.hp,100,'decimal wall blocks damage');solids.length=0;
+ }
+ assert.equal(impacts,100,'all camera-wall endpoints generate real muzzle impacts');delete world.damageSolid;combat.clearEffects();
+ console.log('PASS 100 decimal wall-endpoint impact regressions');
+}
 const {createCamera}=await import('../src/camera.js');player.body=new THREE.Group();player.equipment=[{id:0},null];player.slot=0;const camera=createCamera(g,world,player);
 camera.look(2,10);camera.update(1/60);assert.equal(camera.state.pitch,1.45);assert.equal(g.camera.position.y,CHARACTER.eye);assert.equal(player.body.visible,false);assert.equal(camera.view.scale.x,CHARACTER.viewScale);
 camera.look(0,-20);camera.update(1/60);assert.equal(camera.state.pitch,-1.45);assert.equal(g.camera.position.y,CHARACTER.eye,'pitch does not enter ground');

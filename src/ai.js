@@ -90,7 +90,7 @@ export function createAI(g,world,actors,{state,combat,hostages,nearestInteractio
    if(a.passRoute&&time>a.passUntil){a.passRoute=null;a.pathTarget=null;a.repathAt=0;}
    const target=a.passRoute?.[0]||a.goal||{x:a.x,y:a.y,z:a.z},changed=!a.pathTarget||(gap(target,a.pathTarget)>1.5||Math.abs(target.y-a.pathTarget.y)>.38);
    if(!a.ladderId&&(time>=a.repathAt||changed)){a.path=world.path(a,target,{profile:'soldier'});a.pathTarget={...target};a.repathAt=time+.75+(a.id%4)*.1;}
-   while(a.path.length&&((gap(a,a.path[0])<.22&&Math.abs(a.y-a.path[0].y)<.38&&!(a.path[0].action==='grille'&&a.path[0].solid?.active))||(a.path.length>1&&!['ladder','low','door','grille'].includes(a.path[0].action||a.path[0].kind)&&world.canWalk(a,a.path[1],CHARACTER.navRadius))))a.path.shift();
+   while(!a.ladderId&&a.path.length&&((gap(a,a.path[0])<.22&&Math.abs(a.y-a.path[0].y)<.38&&!(a.path[0].action==='grille'&&a.path[0].solid?.active))||(a.path.length>1&&!['ladder','low','door','grille'].includes(a.path[0].action||a.path[0].kind)&&world.canWalk(a,a.path[1],CHARACTER.navRadius))))a.path.shift();
    const direct=!a.ladderId&&world.canWalk(a,target,CHARACTER.navRadius),waypoint=direct?target:a.path[0];let vx=0,vz=0;
    if(waypoint?.action==='grille'&&waypoint.solid?.active&&gap(a,waypoint)<2.2&&!hasSight){const s=waypoint.solid;a.aimTarget={x:(s.x0+s.x1)/2,y:(s.y0+s.y1)/2,z:(s.z0+s.z1)/2};a.gunPitch=-(a.pitch||0);a.aiMode='clear-grille';if(aligned(a,a.aimTarget))c.fire(a);}
 

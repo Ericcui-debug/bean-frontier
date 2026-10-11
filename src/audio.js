@@ -38,6 +38,13 @@ export class GameAudio {
     }catch{return false;}
   }
   syncGains(){if(!this.ctx)return;const t=this.ctx.currentTime;for(const [gain,value] of [[this.musicGain,(this.musicEnabled&&this.playing) ? .55*(this.phase==='buy'?1:.2) : 0],[this.effectsGain,this.effectsEnabled?1:0]]){gain.gain.cancelScheduledValues(t);gain.gain.setTargetAtTime(value,t,.025);}}
+  async recover(){
+    if(!this.ctx||this.ctx.state==='closed'||(!this.musicEnabled&&!this.effectsEnabled)||globalThis.document?.hidden)return false;
+    if(this.ctx.state==='running'){this.syncGains();return true;}
+    if(this.recovering)return this.recovering;
+    this.recovering=(async()=>{try{await this.ctx.resume();this.syncGains();if(this.playing){this.nextNote=this.ctx.currentTime+.05;this.tick();}return this.ctx.state==='running';}catch{return false;}finally{this.recovering=null;}})();
+    return this.recovering;
+  }
   setPlaying(playing){
     this.playing=playing;if(!playing)this.clearEffects();this.syncGains();if(this.timer){clearInterval(this.timer);this.timer=null;}
     if(playing&&this.ctx){this.nextNote=this.ctx.currentTime+.05;this.tick();this.timer=setInterval(()=>this.tick(),30);}

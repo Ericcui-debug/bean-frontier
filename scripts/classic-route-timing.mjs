@@ -18,7 +18,7 @@ function travel(start,waypoints,fps,hostage=false,observers=[]){
   let index=0;
   for(let frame=0;index<path.length&&frame<fps*120;frame++)for(let step=0;step<Math.round(1/fps/STEP)&&index<path.length;step++){
    const q=path[index];
-   if(q.kind==='door'){w.toggleDoor(q.id);index++;continue;}
+   if(q.kind==='door'){if(!q.solid.open)w.toggleDoor(q.id);index++;continue;}
    if(q.kind==='grille'){w.damageSolid(q.solid,100);index++;continue;}
    const delta=Math.hypot(q.x-a.x,q.z-a.z);if(delta<.12&&Math.abs(q.y-a.y)<.35){index++;continue;}
    const speed=hostage?2.8:w.stanceAt(a)==='crouch'?2.2:5.5,pace=Math.min(speed,delta/STEP);

@@ -1,105 +1,128 @@
-// Classic-inspired hand-authored topology; no Valve binaries or textures are used.
+// Hand-authored solids calibrated against the CS1.6 reference BSP measurements.
+// Only measurements are retained; no reference BSP, texture or engine ships.
+export const CLASSIC_UNIT=1.552/72;
 const p=(x,z,y=0)=>({x,y,z});
 const palette={brick:0xaa7866,steel:0x748792,metal:0x748792,concrete:0xb9b9ae,crate:0xa58a5a,sand:0xd5b78b,stone:0xb89972,plaster:0xd8c49e,wood:0x99764c};
-const box=(x,z,w,d,h,material='brick',y=0,type='wall')=>({x,z,w,d,h,color:palette[material]??0xb8aaa0,y,type,material});
-const slope=(x,z,w,d,rise,direction,y=0,material='concrete')=>({x,z,w,d,rise,direction,color:palette[material],y,type:'ramp',material});
-const stairs=(x,z,w,d,rise,direction,y=0,material='concrete')=>{const n=Math.ceil(rise/.24),out=[];for(let i=0;i<n;i++){const q=(i+.5)/n,h=(i+1)*rise/n;out.push(box(x+(['east','west'].includes(direction)?(q-.5)*w:0),z+(['north','south'].includes(direction)?(q-.5)*d:0),['east','west'].includes(direction)?w/n:w,['north','south'].includes(direction)?d/n:d,direction==='west'||direction==='north'?rise-i*rise/n:h,material,y,'step'));}return out;};
-const wall=(arr,x,z,w,d,h=5,material='brick',y=0)=>arr.push(box(x,z,w,d,h,material,y));
-const teamSpawn=(x,z,y=0)=>Array.from({length:5},(_,i)=>p(x+(i%3-1)*2.2,z+Math.floor(i/3)*2.2,y));
-const a=[];
-// Assault warehouse (front to south), rear alley to north, broad external street.
-wall(a,-23,-2,1,40,6.6);wall(a,23,-2,1,40,6.6);
-// Three front segments create the broad rolling-shutter main entry.
-wall(a,-16.5,18,13,1,6.6);wall(a,13.5,18,19,1,6.6);wall(a,-3,18,14,1,2.5,'steel',4.1);
-// Rear opening at east, closed by an interactive door.
-wall(a,-5,-22,36,1,6.6);wall(a,21,-22,4,1,6.6);wall(a,16,-22,6,1,3.6,'brick',3);
-a.push({...box(16,-22,5.8,.35,3,'metal',0,'door'),id:'rear-door',open:false});
-// Tall warehouse roof and upper internal walkway; a real ground aisle beneath.
-a.push(box(-2,-2,42,38,.22,'metal',6.6,'roof'));
-// Cut a roof opening for a branched duct reaching down to the upper walkway.
-a.pop();a.push(box(-15,-5,16,32,.22,'metal',6.6,'roof'),box(6.5,-5,17,32,.22,'metal',6.6,'roof'),box(-4,-2,4,26,.22,'metal',6.6,'roof'),box(18,-14,8,14,.22,'metal',6.6,'roof'),box(18.8,8,9.6,20,.22,'metal',6.6,'roof'));
-a.push(box(-17,-16,10,10,.2,'steel',3.0,'deck'),box(-17,-5,10,24,.2,'steel',3.0,'deck'),box(-7,-15,10,4,.2,'steel',3.0,'deck'));
-a.push(...stairs(-17,11,6,8,3.2,'north'));
-// Human-scale hostage-room doorway faces the upper landing.
-wall(a,-12,-19.5,1,3,3.4,'brick',3.2);wall(a,-12,-12,1,2,3.4,'brick',3.2);wall(a,-17,-21,10,1,3.4,'brick',3.2);
-wall(a,-22,-16,1,10,3.4,'brick',3.2);wall(a,-20,-11,4,1,3.4,'brick',3.2);wall(a,-12.7,-11,1.4,1,3.4,'brick',3.2);
-// Walkway rails leave stair and room entrances open.
-a.push(box(-11.85,-2,.18,15,.7,'steel',3.2,'rail'),box(-21.5,7,1,.18,.7,'steel',3.2,'rail'),box(-12.5,7,1,.18,.7,'steel',3.2,'rail'));
-for(const [x,z,w,d,h] of [[-5,7,5,5,2.8],[6,8,5,4,2.6],[7,-5,5,5,3.5],[-3,-5,4,4,1.6],[16,0,4,6,2.2],[-16,-4,3,3,1.1]])a.push(box(x,z,w,d,h,'crate',0,'cover'));
-// Recessed dispatch desk and staggered freight break the broad garage sightline.
-// The main threshold remains 14m, the stair aisle remains >3m clear.
-a.push(box(.5,14,3.2,1.8,.95,'steel',0,'cover'),box(12,-11,3,3,1.45,'crate',0,'cover'),box(-6,-11,2.4,2.4,1.2,'crate',0,'cover'));
-// Exterior bridge, truck/loading platform and urban buildings.
-a.push(box(-32,5,6,42,.35,'concrete',4.45,'deck'),...stairs(-32,30,6,8,4.8,'north'),...stairs(-32,-21,6,10,4.8,'south'));
-a.push(box(-34,3,.22,40,.8,'steel',4.8,'rail'),box(-29.8,3,.22,40,.8,'steel',4.8,'rail'));
-wall(a,-41,0,7,60,10,'brick');wall(a,34,-1,6,48,9,'brick');wall(a,0,44,37,4,8,'brick');wall(a,8,-34,31,3,7,'brick');
-a.push(box(-7,29,9,4,2.2,'steel',0,'truck'),box(-10,29,3,4,3.1,'metal',0,'truck'),box(24,31,4,4,1.6,'crate',0,'cover'));
-// Roof access ladder; roof exit onto open roof, a duct system above it.
-const ladders=[{id:'roof-ladder',x:24.5,z:11,y0:0,y1:6.82,exit:p(23.1,11,6.82),bottom:p(24.5,11),normal:{x:-1,z:0}}];
-// Duct trunk north/south and western branch, with low but usable interiors.
-const duct=(x,z,w,d)=>{a.push(box(x,z,w,d,.12,'metal',7.3,'deck'),box(x,z,w,d,.12,'metal',8.52,'ceiling'));if(w>d){a.push(box(x,z-d/2,w,.12,1.1,'metal',7.42),box(x,z+d/2,w,.12,1.1,'metal',7.42));}else{a.push(box(x-w/2,z,.12,d,1.1,'metal',7.42),box(x+w/2,z,.12,d,1.1,'metal',7.42));}};
-duct(16,0,2.8,18);duct(6,-8,22,2.8);duct(-4,-15,2.8,12);
-// Open hatch at the end of the western branch: bullets and camera see down
-// through the same opening used by the climb connection.
-const hatchFloor=a.findIndex(s=>s.type==='deck'&&s.x===-4&&s.y===7.3);a.splice(hatchFloor,1,box(-4,-12.5,2.8,7,.12,'metal',7.3,'deck'));
-// Union junctions: split side panels so the T junction has full interior width.
-for(let i=a.length-1;i>=0;i--){const s=a[i];if(s.y===7.42&&((s.x===14.6)||(s.z===-9.4)||(s.x===16&&(s.z===-9||s.z===9))))a.splice(i,1);}
-for(let i=a.length-1;i>=0;i--)if(a[i].y===7.42&&a[i].z===-6.6)a.splice(i,1);a.push(box(14.6,1.3,.12,15.4,1.1,'metal',7.42),box(7.3,-9.4,19.4,.12,1.1,'metal',7.42),box(4.7,-6.6,19.4,.12,1.1,'metal',7.42));
-a.push(slope(16,12,2.8,6,.6,'north',6.82,'metal'));
-// Downward duct chute ends onto upper landing, modeled as climb link.
-ladders.push({id:'duct-drop',x:-4,z:-17,y0:3.2,y1:7.42,exit:p(-4,-15,7.42),bottom:p(-5.5,-17,3.2),normal:{x:0,z:1},duct:true});
-a.push({...box(16,8.6,2.6,.12,1.08,'steel',7.42,'grille'),id:'roof-grille',hp:45});
-const assault={id:'assault',name:'Assault 工业仓库',mode:'rescue',bounds:{x0:-47,x1:43,z0:-42,z1:47},terrain:a,spawns:{attack:teamSpawn(-8,38),defend:teamSpawn(4,-12)},sites:[{id:'A',...p(-4,10),radius:3,color:0xd5a44c},{id:'B',...p(16,-26),radius:3,color:0x709dcc}],hostagePositions:[p(-19,-16,3.2),p(-16,-18,3.2),p(-19,-19,3.2),p(-16,-15,3.2)],rescueZones:[{id:'street-rescue',...p(-19,36),radius:4.8}],ladders,lowZones:[{x0:14.5,x1:17.5,z0:-9.5,z1:15,y0:6.8,y1:8.7},{x0:-5.5,x1:17.5,z0:-9.5,z1:-6.5,y0:7.2,y1:8.7},{x0:-5.5,x1:-2.5,z0:-21,z1:-7,y0:7.2,y1:8.7}],tactics:[{id:'A',label:'正门突入'},{id:'B',label:'后门包抄'},{id:'C',label:'屋顶渗透'}],routeVariants:{A:[[p(-1,32),p(-4,20),p(-9,14),p(-17,15.8),p(-17,11,1.6),p(-17,4,3.2),p(-17,-9,3.2),p(-17,-16,3.2)],[p(12,26),p(12,19),p(11,2),p(-9,1),p(-17,15.8),p(-17,4,3.2),p(-17,-16,3.2)]],B:[[p(28,28),p(28,0),p(28,-27),p(16,-27),p(16,-18),p(-6,-18),p(-9,1),p(-17,15.8),p(-17,4,3.2),p(-17,-16,3.2)]],C:[[p(28,24),p(24.5,11),p(23.1,11,6.82),p(16,13,6.92),p(16,5,7.42),p(16,-8,7.42),p(-4,-8,7.42),p(-4,-15,7.42),p(-5.5,-17,3.2),p(-8,-15,3.2),p(-16,-9,3.2),p(-17,-16,3.2)]]},defensePositions:[p(-17,-12,3.2),p(-7,-15,3.2),p(13,-14),p(-9,3),p(4,1)],postPlantPositions:{A:[p(-9,3),p(12,2)],B:[p(14,-17),p(-8,-16,3.2)]},areas:[{name:'反恐救援街道',...p(-19,36)},{name:'仓库正门',...p(-4,19)},{name:'仓库箱区',...p(5,5)},{name:'后门巷道',...p(16,-27)},{name:'高架桥',...p(-32,4,4.8)},{name:'人质房',...p(-17,-17,3.2)},{name:'上层走道',...p(-17,0,3.2)},{name:'仓库屋顶',...p(4,6,6.82)},{name:'屋顶通风管',...p(16,-2,7.42)}],colors:{floor:0xb7b2a6,boundary:0x8e8173,accent:0xb7a25c},checklist:['front_entry','rear_door','warehouse_boxes','upper_stairs','upper_walkway','hostage_room','roof_ladder','branched_duct','duct_drop','street_bridge','rescue_zone']};
-// Dust2 topology: south T spawn, west upper/lower tunnels and B; mid at center;
-// east long doors/pit/long to A; elevated short/catwalk links mid to A.
-const d=[];
-// Polygonal arrangement authored as rooms/lanes with interrupted wall runs.
-wall(d,-45,8,1,72,7,'stone');wall(d,44,7,1,75,7,'stone');wall(d,0,42,64,1,7,'stone');wall(d,-16,-37,57,1,7,'stone');wall(d,34,-37,20,1,7,'stone');
-// T spawn courtyard south, separated from CT by a blind central block.
-wall(d,-12,25,24,2,7,'stone');wall(d,18,25,14,2,7,'stone');wall(d,-.5,8,9,15,6.4,'plaster');
-// Mid (diagonal feeling through staggered side walls) and double doors.
-wall(d,-10,5,2,34,7,'stone');wall(d,13,1,2,29,2.1,'stone');wall(d,-6,-16,9,1,6,'stone');wall(d,7,-16,7,1,6,'stone');
-d.push(box(-3.2,-16,2.8,.22,4.5,'wood',0,'mid-door'),box(3.2,-15,2.8,.22,4.5,'wood',0,'mid-door'));
-// Long doors entrance uses offset vestibule (no straight spawn-to-site ray).
-wall(d,28,28,1,18,5.4,'plaster');wall(d,36,21,15,1,5.4,'plaster');wall(d,28,13,1,6,5.4,'plaster');wall(d,20,17,16,1,5.4,'plaster');
-d.push(box(29.2,20,1,.2,4.3,'wood',0,'long-door'),box(33.5,21,.2,1.8,4.3,'wood',0,'long-door'));
-// Longlane east of buildings, pit lower by 2m relative to raised long shoulder.
-wall(d,28,-5,1,20,6.2,'plaster');wall(d,34,8,12,1,4.8,'stone');
-d.push(box(38,-2,11,22,2,'sand',0,'deck'),slope(38,12,11,6,2,'north',0,'sand'));
-// Pit stays ground level behind outerwall and two overlapping cover lips.
-d.push(box(35,16,3,5,1.4,'stone',0,'cover'));
-// A platform at height3.2, longramp and CT ramp; catwalk short at2.1.
-d.push(box(30,-26,25,18,3.2,'stone',0,'deck'),slope(38,-14,10,8,1.2,'north',2,'sand'),slope(13.5,-27,8,9,3.2,'east',0,'sand'));
-d.push(box(21,-30,3,4,2.3,'crate',3.2,'cover'),box(31,-29,4,4,2.4,'crate',3.2,'cover'),box(36,-22,4,3,1.3,'crate',3.2,'cover'));
-// Short/catwalk from T side ofmid, corner, stair up toAplatform.
-d.push(box(8,18,8,12,.24,'stone',1.86,'deck'),slope(8,28,8,8,2.1,'north',0,'sand'),box(12,7,8,16,.24,'stone',1.86,'deck'),box(20,-6,9,10,.24,'stone',1.86,'deck'),box(16,-2,8,6,.24,'stone',1.86,'deck'),...stairs(23,-14,6,6,1.1,'north',2.1,'stone'));
-wall(d,5,10,.25,23,.65,'stone',2.1);wall(d,15,9,.25,14,.65,'stone',2.1);wall(d,20,-1,9,.3,.65,'stone',2.1);
-// CT spawn open region north ofmid; Bdoor/window two different entries.
-wall(d,-18,-34,1,6,6,'stone');wall(d,-18,-24.5,1,3,6,'stone');wall(d,-18,-11.75,1,12.5,6,'stone');wall(d,-18,-28.5,1,5,1.7,'stone');wall(d,-18,-28.5,1,5,1.5,'stone',4.5);wall(d,-18,-20.5,1,5,2,'stone',4);
-// Offset B double-door leaves form a real 2.8m central passage.
-d.push(box(-18.55,-22.6,.22,1.4,3.8,'wood',0,'b-door'),box(-17.45,-18.4,.22,1.4,3.8,'wood',0,'b-door'));
-// B window at north-west connects CT floor via short2.2mstep/ramp.
-d.push(box(-17.6,-28,.8,5,1.7,'stone',0,'sill'),slope(-14,-28,6,5,1.7,'west',0,'sand'),slope(-22,-28,7,5,1.7,'east',0,'sand'));
-// Bcourtyard and platform, exitfrom upper tunnel southward.
-wall(d,-39,-7,10,1,7,'stone');wall(d,-22,-7,8,1,7,'stone');wall(d,-21,-11,1,8,7,'stone');
-d.push(box(-33,-28,15,13,.5,'sand',0,'deck'),slope(-33,-20,15,3,.5,'north',0,'sand'),box(-32,-29,4,4,2.7,'crate',.5,'cover'),box(-26,-19,4,4,2.3,'crate',0,'cover'),box(-40,-19,4,4,2.6,'crate',0,'cover'),box(-33,-11,3,2,1.1,'crate',0,'cover'));
-// Upper tunnels southwest room, vaultedroof; lower tunnel links mid.
-wall(d,-38,14,1,28,6,'stone');wall(d,-22,20,1,16,6,'stone');wall(d,-36.25,28,4.5,1,6,'stone');wall(d,-23.75,28,4.5,1,6,'stone');wall(d,-30,28,8,1,2.5,'stone',3.5);wall(d,-30,3,17,1,2.5,'stone',3.5);
-d.push(box(-30,16,16,24,.25,'stone',5.6,'ceiling'),box(-30,4,16,4,.25,'stone',5.6,'ceiling'),box(-28,15,4,4,2.0,'crate',1.6,'cover'));
-// Upper tunnel floor is raised; a real stair flight descends to lower tunnels.
-d.push(box(-30,16,16,24,1.6,'stone',0,'deck'),slope(-30,32,8,8,1.6,'north',0,'sand'),slope(-30,1,8,6,1.6,'south',0,'sand'),...stairs(-19,5,6,5,1.6,'west',0,'stone'));
-// Lower tunnel passage underraisedcatwalk; open entry to mid and stairtransition.
-wall(d,-17,10,10,1,5,'stone');wall(d,-19,0,6,1,5,'stone');d.push(box(-17,5,10,10,.2,'stone',4.8,'ceiling'));
-// Shared-solid masonry arches frame real passages; stepped upper shoulders
-// remain above standing headroom and never create visual-only obstructions.
-for(const [x,z,w,y] of [[0,-16,5.6,0],[-30,3,8,1.6],[-18,-20.5,5,0]]){
- if(x===-18){d.push(box(x,z,1,w,1,'stone',3,'arch-crown'));}
- else{d.push(box(x,z,w,.8,.5,'stone',y+3.2,'arch-crown'),box(x-w/2+.35,z,.7,.8,.55,'stone',y+2.65,'arch-shoulder'),box(x+w/2-.35,z,.7,.8,.55,'stone',y+2.65,'arch-shoulder'));}
+const box=(x,z,w,d,h,material='brick',y=0,type='wall')=>({x,z,w,d,h,color:palette[material],y,type,material});
+function author(xShift,yCenter,zBase=0){
+ const terrain=[],U=CLASSIC_UNIT,Q=(x,z,y=0)=>p((x+xShift)*U,(yCenter-z)*U,(y-zBase)*U);
+ const B=(x0,x1,z0,z1,y0,y1,material='brick',type='wall',extra={})=>{const q=Q((x0+x1)/2,(z0+z1)/2,y0),s={...box(q.x,q.z,(x1-x0)*U,(z1-z0)*U,(y1-y0)*U,material,q.y,type),...extra};terrain.push(s);return s;};
+ const R=(x0,x1,z0,z1,y0,y1,direction,material='concrete')=>{const q=Q((x0+x1)/2,(z0+z1)/2,y0);const s={...q,w:(x1-x0)*U,d:(z1-z0)*U,rise:(y1-y0)*U,direction,color:palette[material],type:'ramp',material};terrain.push(s);return s;};
+ const S=(x0,x1,z0,z1,y0,y1,direction,material='concrete')=>{const n=Math.ceil((y1-y0)*U/.24);for(let i=0;i<n;i++){const horizontal=['east','west'].includes(direction),reverse=['west','north'].includes(direction),t0=i/n,t1=(i+1)/n,h=reverse?y1-i*(y1-y0)/n:y0+(i+1)*(y1-y0)/n;B(horizontal?x0+t0*(x1-x0):x0,horizontal?x0+t1*(x1-x0):x1,horizontal?z0:z1-t1*(z1-z0),horizontal?z1:z1-t0*(z1-z0),y0,h,material,'step');}};
+ const W=(x0,x1,z0,z1,y0=0,y1=512,material='brick')=>B(x0,x1,z0,z1,y0,y1,material);
+ return {terrain,Q,B,R,S,W};
 }
-// Offset long and site cover create stop/peek positions without closing lanes.
-d.push(box(34.2,-3,2.2,3.2,1.05,'stone',2,'cover'),box(24,-22,2.6,2.2,1.1,'crate',3.2,'cover'),box(-39,-26,2.2,3.2,1.15,'stone',.5,'cover'));
-// Courtyard accentsallsolidshared cover; no arbitraryroads fromoldmaps.
-for(const [x,z,w,dd,h] of [[-4,34,4,3,1.5],[18,33,4,4,1.8],[2,-27,4,3,1.4],[39,-31,2,3,1.2]])d.push(box(x,z,w,dd,h,'crate',0,'cover'));
-const dust2={id:'dust2',name:'Dust2 沙漠城镇',mode:'bomb',bounds:{x0:-49,x1:49,z0:-42,z1:47},terrain:d,spawns:{attack:teamSpawn(3,36),defend:teamSpawn(7,-34)},sites:[{id:'A',...p(29,-26,3.2),radius:4.5,color:0xd58a48},{id:'B',...p(-33,-26,.5),radius:4.5,color:0x6885ac}],hostagePositions:[],rescueZones:[],ladders:[],lowZones:[],tactics:[{id:'A',label:'进攻 A 点'},{id:'B',label:'进攻 B 点'}],routeVariants:{A:[[p(21,34),p(24,22),p(32,17),p(39,14),p(39,6,2),p(38,-11,2),p(38,-18,3.2),p(29,-26,3.2)],[p(8,31),p(8,20,2.1),p(12,11,2.1),p(12,0,2.1),p(20,-3,2.1),p(23,-11,2.1),p(23,-17,3.2),p(29,-26,3.2)],[p(-7,20),p(-7,0),p(-1,-13),p(6,-21),p(9,-27),p(21,-27,3.2),p(29,-26,3.2)]],B:[[p(-19,34),p(-30,35,.2),p(-32,22,1.6),p(-32,10,1.6),p(-30,0,.5333333333333333),p(-30,-4),p(-30,-12),p(-32,-19),p(-33,-26,.5)],[p(-7,20),p(-7,5),p(-15,5),p(-24,5,1.6),p(-30,7,1.6),p(-30,0,.5333333333333333),p(-30,-4),p(-30,-12),p(-33,-26,.5)],[p(-7,20),p(-7,-10),p(1,-20),p(-10,-23),p(-23,-21),p(-33,-26,.5)]]},defensePositions:[p(27,-31,3.2),p(-35,-32,.5),p(7,-22),p(25,-19,3.2),p(-23,-24)],postPlantPositions:{A:[p(26,-20,3.2),p(40,-24,3.2),p(9,-27)],B:[p(-39,-30,.5),p(-24,-23),p(-32,-3)]},areas:[{name:'T 出生庭院',...p(3,36)},{name:'A 大双门',...p(30,21)},{name:'A 大道',...p(38,-2,2)},{name:'坑位',...p(40,17)},{name:'A 包点平台',...p(29,-26,3.2)},{name:'A 斜坡',...p(13.5,-27,1.6)},{name:'A 小道楼梯',...p(23,-13,2.65)},{name:'中路猫道',...p(12,9,2.1)},{name:'中路',...p(-4,2)},{name:'中门',...p(0,-16)},{name:'上层隧道',...p(-32,16,1.6)},{name:'下层隧道',...p(-17,5)},{name:'B 隧道出口',...p(-25,-3)},{name:'B 双门',...p(-18,-21)},{name:'B 窗口',...p(-18,-28,1.7)},{name:'B 包点平台',...p(-33,-26,.5)},{name:'CT 出生区',...p(4,-28)}],colors:{floor:0xd7c29c,boundary:0xba9c72,accent:0xb67445},checklist:['t_spawn','long_double_doors','pit','long_lane','a_platform','a_ramp','short_stairs','catwalk','middle','mid_doors','upper_tunnel','lower_tunnel','b_tunnel_exit','b_doors','b_window','b_platform','ct_spawn']};
+const as=author(256,1800),{Q:A,B:AB,R:AR,S:AS,W:AW}=as;
+// Warehouse: measured 1408 x 1344 units; upper room is an annex, not a
+// ground-floor room inside an oversized symmetric warehouse.
+AW(-720,-704,1536,2880,0,336);AW(-720,-704,1536,2368,336,512);AW(-720,-704,2816,2880,336,512);AW(-720,-704,2368,2816,480,512);AW(704,720,1536,1744);AW(704,720,1744,1984,0,392);AW(704,720,1984,2176);AW(704,720,2256,2880);
+AW(-704,-576,1536,1552);AW(512,704,1536,1552);AW(-576,512,1536,1552,256,512,'steel');
+AW(-704,704,2880,2896);AW(704,720,2176,2256,112,512);
+AB(704,720,2176,2256,0,112,'metal','door',{id:'rear-door',open:false});
+// South mezzanine and narrow west catwalk retain ground-level space below.
+AB(-688,448,1616,1696,288,304,'steel','deck');
+AB(-688,-576,1696,2256,288,304,'steel','deck');
+AR(-560,-400,1728,2240,0,304,'north');
+AB(-576,-400,2240,2256,288,304,'steel','deck');
+AS(-576,-400,2256,2336,304,336,'north');
+AB(-688,-448,2336,2752,320,336,'steel','deck');
+AB(-688,448,2752,2880,320,336,'steel','deck');
+// Rear freight dais and access steps, beneath the hostage gallery.
+AB(-688,-96,2368,2640,0,128,'concrete','deck');
+AS(-448,-288,2240,2368,0,128,'north');
+// Hostage office is outside the west wall; its actual upper double-door span
+// remains open here, while the east service door is the interactive rear door.
+AB(-1152,-704,2368,2816,320,336,'steel','deck');
+// Flush doorway threshold bridges the wall-to-gallery seam.
+AB(-720,-672,2496,2624,320,336,'steel','deck');
+AW(-1168,-1152,2368,2816,336,480);AW(-1152,-704,2816,2832,336,480);AW(-1152,-704,2352,2368,336,480);
+AW(-720,-704,2368,2496,336,480);AW(-720,-704,2624,2816,336,480);AW(-720,-704,2496,2624,448,480);
+AB(-1168,-704,2352,2832,480,496,'metal','roof');
+// Rails are outside the walkable strip, with the staircase opening left clear.
+AB(-576,-568,1696,1856,304,344,'steel','rail');AB(-576,-568,2240,2256,304,344,'steel','rail');
+AB(-448,-440,2336,2752,336,376,'steel','rail');AB(-440,448,2744,2752,336,376,'steel','rail');
+for(const q of [[-320,-96,1792,1952,0,128],[160,384,1856,2080,0,160],[352,512,2528,2688,0,96],[-96,96,2400,2528,0,96],[512,672,1696,1824,0,64],[-496,-384,2560,2640,128,208]])AB(...q,'crate','cover');
+AB(-144,16,1576,1660,0,44,'steel','cover');
+// Roof is split around two genuinely open service shafts and a ladder notch.
+const roofCuts=[[ -48,48,2128,2240],[-640,-560,2424,2504],[640,720,1744,1984]];
+let roofRects=[[-720,720,1536,2896]];
+for(const [cx0,cx1,cz0,cz1]of roofCuts){const next=[];for(const [x0,x1,z0,z1]of roofRects){const lx=Math.max(x0,cx0),rx=Math.min(x1,cx1),lz=Math.max(z0,cz0),rz=Math.min(z1,cz1);if(lx>=rx||lz>=rz){next.push([x0,x1,z0,z1]);continue;}if(x0<lx)next.push([x0,lx,z0,z1]);if(rx<x1)next.push([rx,x1,z0,z1]);if(z0<lz)next.push([lx,rx,z0,lz]);if(rz<z1)next.push([lx,rx,rz,z1]);}roofRects=next;}
+for(const r of roofRects)AB(...r,496,512,'metal','roof');
+AB(704,800,1712,1760,376,392,'metal','deck');AR(640,800,1760,1984,392,512,'north','metal');AB(704,800,1984,2048,496,512,'metal','deck');
+// Low ducts retain their measured height; local width is 96 units (2.07m)
+// so two 0.848m beans can yield instead of blocking a whole squad.
+AB(-48,48,2240,2752,428,436,'metal','deck');AB(-48,48,2240,2752,488,496,'metal','ceiling');
+AB(48,56,2240,2752,436,488,'metal');
+AB(-56,-48,2240,2408,436,488,'metal');AB(-56,-48,2520,2752,436,488,'metal');
+AB(-576,-48,2416,2512,428,436,'metal','deck');AB(-640,-48,2416,2512,488,496,'metal','ceiling');
+AB(-640,-48,2408,2416,436,488,'metal');AB(-640,-48,2512,2520,436,488,'metal');
+AB(-48,48,2312,2320,436,486,'steel','grille',{id:'roof-grille',hp:45});
+// Street, elevated bridge and offset frontage establish genuine exterior lanes.
+AB(-1792,-1408,576,2112,240,256,'concrete','deck');AR(-1792,-1408,320,704,0,256,'north');AR(-1792,-1408,1984,2368,0,256,'south');
+AB(-1792,-1784,576,2112,256,300,'steel','rail');AB(-1416,-1408,576,2112,256,300,'steel','rail');
+AW(-2720,-2304,-128,2880,0,640);AW(-2304,-2176,128,416,0,512);AW(-2304,-2176,1856,2496,0,512);
+AW(-1216,-544,448,960,0,384);AW(832,1280,576,1728,0,512);AW(-512,704,-128,-64,0,512);AW(-720,448,3008,3136,0,640);
+AB(448,704,128,352,0,104,'metal','truck');AB(384,448,128,288,0,144,'steel','truck');
+AB(-848,-624,1280,1408,0,64,'crate','cover');AB(912,1056,2496,2640,0,112,'crate','cover');
+const ladders=[{id:'roof-ladder',...A(744,1744),y0:0,y1:392*CLASSIC_UNIT,bottom:A(744,1744),exit:A(744,1744,392),normal:{x:-1,z:0}},{id:'roof-vent',...A(0,2184),y0:436*CLASSIC_UNIT,y1:512*CLASSIC_UNIT,bottom:A(0,2272,436),exit:A(0,2120,512),normal:{x:0,z:1},duct:true},{id:'duct-drop',...A(-608,2464),y0:336*CLASSIC_UNIT,y1:436*CLASSIC_UNIT,bottom:A(-624,2464,336),exit:A(-552,2464,436),normal:{x:1,z:0},duct:true}];
+const region=(name,q)=>({name,...q}),bound=(Q,x0,x1,z0,z1)=>{const a=Q(x0,z0),b=Q(x1,z1);return{x0:a.x,x1:b.x,z0:b.z,z1:a.z};};
+const assault={id:'assault',name:'Assault 工业仓库',mode:'rescue',bounds:bound(A,-2720,1280,-1088,3136),boundaryHeight:18,terrain:as.terrain,spawns:{attack:[A(-576,128),A(-576,352),A(-320,128),A(-320,352),A(-832,128)],defend:[A(-1088,2416,336),A(-960,2416,336),A(-832,2416,336),A(-1088,2752,336),A(-960,2752,336)]},sites:[{id:'A',...A(0,1800),radius:3,color:0xd5a44c},{id:'B',...A(768,2216),radius:3,color:0x709dcc}],hostagePositions:[A(-1056,2592,336),A(-992,2592,336),A(-760,2720,336),A(-800,2720,336)],rescueZones:[{id:'street-rescue',...A(-576,192),radius:4.8}],ladders,lowZones:[{...bound(A,-64,64,2112,2768),y0:428*CLASSIC_UNIT,y1:504*CLASSIC_UNIT},{...bound(A,-656,-32,2400,2528),y0:428*CLASSIC_UNIT,y1:504*CLASSIC_UNIT}],tactics:[{id:'A',label:'正门突入'},{id:'B',label:'后门包抄'},{id:'C',label:'屋顶渗透'}],routeVariants:{A:[[A(-384,384),A(-320,1120),A(-160,1480),A(-128,1700),A(-480,1680),A(-480,2260,304),A(-520,2380,336),A(-624,2560,336),A(-960,2592,336)],[A(128,384),A(384,1200),A(256,1700),A(48,2180),A(-480,1680),A(-480,2260,304),A(-520,2380,336),A(-960,2592,336)]],B:[[A(768,384),A(784,1480),A(784,2216),A(664,2216),A(128,2180),A(-480,1680),A(-480,2260,304),A(-520,2380,336),A(-960,2592,336)]],C:[[A(768,448),A(784,1480),A(744,1744),A(744,1744,392),A(704,2016,512),A(0,2120,512),A(0,2272,436),A(0,2464,436),A(-552,2464,436),A(-624,2464,336),A(-960,2592,336)]]},defensePositions:[A(-624,2544,336),A(-224,2816,336),A(608,2336),A(-128,2144),A(448,1568)],postPlantPositions:{A:[A(-128,2144),A(448,1568)],B:[A(608,2336),A(-624,2544,336)]},areas:[region('反恐救援街道',A(-576,192)),region('仓库正门',A(-128,1536)),region('仓库箱区',A(0,2048)),region('后门巷道',A(768,2216)),region('高架桥',A(-1600,1344,256)),region('人质房',A(-960,2592,336)),region('上层走道',A(-624,2016,304)),region('仓库屋顶',A(256,2048,512)),region('屋顶通风管',A(0,2464,436))],colors:{floor:0xb7b2a6,boundary:0x8e8173,accent:0xb7a25c},checklist:['front_entry','rear_door','warehouse_boxes','upper_stairs','upper_walkway','hostage_room','roof_ladder','branched_duct','duct_drop','street_bridge','rescue_zone'],reference:{unit:CLASSIC_UNIT,origin:{xShift:256,yCenter:1800,zBase:0},source:'cs_assault.bsp v30 from wasm cs1.6-web',warehouse:{x0:-704,x1:704,z0:1536,z1:2880},landmarks:{door:A(712,2216),grille:A(0,2316,436),window:null,ladder:A(744,1744),roofEntry:A(0,2120,512),ductEnd:A(-552,2464,436),ductExit:A(-624,2464,336)},portalWidth:96*CLASSIC_UNIT}};
+// Dust2 keeps the original offset spawns and distinct vertical relationships:
+// CT -128, B/long/upper tunnel 0, A/short 96, T 128 reference units.
+const du=author(384,1120,-128),{Q:D,B:DB,R:DR,S:DS,W:DW}=du;
+// Outer city outline; closed blocks define the routes, not a symmetric template.
+DW(-2688,-2432,-1280,3200,-128,384,'stone');DW(1920,2048,-768,3072,-128,352,'stone');DW(-2304,1920,3072,3200,-128,384,'stone');DW(-2432,704,-1280,-1152,-128,384,'stone');
+// T platform, broad west approach and an offset central blind building.
+DB(-2304,256,-1152,-256,-128,128,'stone','deck');DW(-256,128,-256,384,128,384,'plaster');DW(128,384,-256,-128,0,384,'plaster');DW(640,768,-256,-128,0,384,'plaster');DB(256,768,-768,-512,-128,128,'stone','deck');
+DR(-896,-256,-256,128,0,128,'south','sand');DR(-2048,-1536,-256,0,0,128,'south','sand');
+DB(-992,-128,128,640,-128,0,'sand','deck');DB(-992,-128,896,1280,-128,0,'sand','deck');DB(-864,-128,640,896,-128,0,'sand','deck');DR(-1248,-864,640,896,-128,0,'east','sand');
+// T east courtyard and the enclosed offset long double-door vestibule.
+DR(256,768,-512,-128,0,128,'south','sand');DB(256,1920,-128,2176,-128,0,'sand','deck');
+DW(640,768,64,768,0,352,'plaster');DW(768,1408,768,832,0,352,'plaster');DW(1216,1280,256,640,0,352,'plaster');DW(960,1664,192,256,0,352,'plaster');
+DB(800,864,768,784,0,192,'wood','long-door');DB(1216,1232,272,336,0,192,'wood','long-door');DB(768,1408,256,768,224,240,'stone','ceiling');
+// Main island, catwalk and the long outer lane. Stepped corners represent
+// measured bevels while keeping collision/LOS identical to the rendered wall.
+DW(128,1152,832,1408,0,352,'plaster');DW(640,1280,1408,2048,0,352,'plaster');
+for(let i=0;i<4;i++)DW(128+i*64,192+i*64,768+i*64,832+i*64,0,352,'plaster');
+// Lower mid drops towards the genuinely low CT arch and doors.
+DW(-1056,-992,128,1408,0,352,'stone');DW(-1056,-992,1536,1728,-128,352,'stone');
+DR(-896,-256,1280,1600,-128,0,'south','sand');DW(-992,-256,1664,1680,-128,320,'stone');DW(128,240,1664,1680,-128,320,'stone');DW(528,576,1664,1680,-128,320,'stone');DW(240,528,1664,1680,96,320,'stone');
+DB(-224,-96,1664,1676,-128,64,'wood','mid-door');DB(32,160,1688,1700,-128,64,'wood','mid-door');DB(-256,128,1660,1684,96,144,'stone','arch-crown');
+// Catwalk runs beside mid, turns above CT, then climbs the short stairs.
+DB(-256,32,256,1408,-16,0,'stone','deck');DB(-256,512,1408,1600,-16,0,'stone','deck');
+DB(256,512,1600,1760,-16,0,'stone','deck');DR(256,512,1760,1920,0,96,'north','stone');
+DB(256,640,1920,2752,64,96,'stone','deck');
+DB(-272,-256,320,1408,0,32,'stone','rail');DB(-256,256,1600,1616,0,32,'stone','rail');
+// A site is suspended over part of CT; long is lower and pit lower again.
+DB(640,1664,2304,2880,64,96,'stone','deck');DR(1280,1664,2176,2304,0,96,'north','sand');
+DR(-128,256,2560,2816,-128,96,'east','sand');
+// Pit is a real depressed pocket rather than an isolated mark on level sand.
+for(let i=du.terrain.length-1;i>=0;i--){const s=du.terrain[i];if(s.type==='deck'&&s.x===D(1088,1024).x&&s.d===2304*CLASSIC_UNIT)du.terrain.splice(i,1);}
+// Split the long floor around the east pit pocket.
+DB(256,1664,-128,2176,-128,0,'sand','deck');DB(1664,1920,896,2176,-128,0,'sand','deck');DB(1664,1920,-128,256,-128,0,'sand','deck');DR(1664,1920,640,896,-128,0,'north','sand');
+DB(1728,1856,352,608,-128,-64,'stone','cover');
+for(const q of [[928,1056,2432,2560,96,224],[1216,1344,2560,2752,96,208],[704,832,2496,2688,96,192],[1472,1568,1920,2016,0,48]])DB(...q,'crate','cover');
+// B courtyard has independent door and window entries, with a tunnel choke.
+DB(-2304,-1024,1792,3072,-128,0,'sand','deck');
+DW(-2320,-2304,1728,3072,-128,384,'stone');DW(-2304,-1792,1792,1808,0,352,'stone');DW(-1664,-1024,1792,1808,0,352,'stone');
+DW(-1040,-1024,1792,2112,-128,352,'stone');DW(-1040,-1024,2304,2560,-128,352,'stone');DW(-1040,-1024,2752,3072,-128,352,'stone');
+DW(-1040,-1024,2112,2304,192,352,'stone');DW(-1040,-1024,2560,2752,160,352,'stone');DB(-1040,-1024,2560,2752,-128,64,'stone','sill');
+DB(-1056,-1040,2128,2192,0,176,'wood','b-door');DB(-1024,-1008,2240,2304,0,176,'wood','b-door');
+DR(-1024,-640,2560,2752,-128,64,'west','sand');DR(-1408,-1040,2560,2752,0,64,'east','sand');
+// A short rise leads from the low CT courtyard to B doors, avoiding teleport.
+DR(-1024,-768,2112,2304,-128,0,'west','sand');
+for(const q of [[-1728,-1600,2496,2624,0,128],[-2240,-2112,2112,2240,0,112],[-1280,-1152,1904,2032,0,112],[-2048,-1920,2816,2944,0,80]])DB(...q,'crate','cover');
+// Upper tunnel: enclosed T-side room, bent north connector and real B portal.
+DB(-2176,-1536,0,640,-128,0,'stone','deck');DB(-2176,-1536,896,1024,-128,0,'stone','deck');DB(-2176,-1792,640,896,-128,0,'stone','deck');DW(-2192,-2176,0,1024,0,256,'stone');DW(-1536,-1520,0,640,0,256,'stone');DW(-2176,-2048,0,16,0,256,'stone');DW(-1664,-1536,0,16,0,256,'stone');DB(-2176,-1536,0,1024,240,256,'stone','ceiling');
+DW(-2176,-1920,1024,1040,0,256,'stone');DW(-1664,-1536,1024,1040,0,256,'stone');DB(-1920,-1664,1024,1792,-128,0,'stone','deck');
+DW(-1936,-1920,1024,1792,0,256,'stone');DW(-1664,-1648,1024,1792,0,256,'stone');DB(-1920,-1664,1024,1792,224,240,'stone','ceiling');
+DB(-1920,-1664,1792,1808,160,224,'stone','arch-crown');
+DB(-2080,-1952,448,576,0,96,'crate','cover');
+// Lower tunnel approaches under its ceiling, with a half-turn stair flight.
+DW(-1536,-1024,896,912,-128,224,'stone');DW(-1536,-992,624,640,-128,224,'stone');
+DB(-1536,-992,640,896,208,224,'stone','ceiling');DR(-1792,-1536,640,896,-128,0,'west','stone');
+// Low-cost municipal cover blocks the T/CT spawn ray without fake invisible walls.
+DB(-256,-96,1760,1952,-128,128,'crate','cover');DB(-992,-864,-864,-736,128,192,'crate','cover');
+const dust2={id:'dust2',name:'Dust2 沙漠城镇',mode:'bomb',bounds:bound(D,-2816,2048,-1664,3904),boundaryHeight:16,terrain:du.terrain,spawns:{attack:[D(-832,-704,128),D(-832,-800,128),D(-736,-800,128),D(-640,-800,128),D(-544,-704,128)],defend:[D(64,2240,-128),D(160,2240,-128),D(256,2240,-128),D(352,2240,-128),D(448,2240,-128)]},sites:[{id:'A',...D(1152,2464,96),radius:3.0,color:0xd58a48},{id:'B',...D(-1536,2688,0),radius:3.6,color:0x6885ac}],hostagePositions:[],rescueZones:[],ladders:[],lowZones:[],tactics:[{id:'A',label:'进攻 A 点'},{id:'B',label:'进攻 B 点'}],routeVariants:{A:[[D(128,-768,128),D(448,-512,128),D(512,-128,0),D(1088,96,0),D(1100,420,0),D(920,650,0),D(1500,900,0),D(1500,2110,0),D(1472,2340,96),D(1152,2464,96)],[D(-480,-256,128),D(-480,256,0),D(-128,512,0),D(-128,1440,0),D(384,1664,0),D(384,1960,96),D(512,2440,96),D(1152,2464,96)],[D(-480,-256,128),D(-512,1200,0),D(-480,1728,-128),D(0,2400,-128),D(-160,2688,-128),D(320,2688,96),D(1152,2464,96)]],B:[[D(-1856,-640,128),D(-1856,64,0),D(-1856,800,0),D(-1728,1160,0),D(-1728,1840,0),D(-1536,2688,0)],[D(-480,-256,128),D(-512,768,0),D(-1248,768,-128),D(-1856,768,0),D(-1728,1160,0),D(-1728,1840,0),D(-1536,2688,0)],[D(-480,-256,128),D(-512,1200,0),D(-480,1728,-128),D(-720,2208,-128),D(-1088,2208,0),D(-1536,2688,0)]]},defensePositions:[D(1088,2816,96),D(-1856,2944,0),D(-480,1952,-128),D(1408,2400,96),D(-1184,2400,0)],postPlantPositions:{A:[D(512,2440,96),D(1500,2816,96),D(64,2400,-128)],B:[D(-2112,2880,0),D(-1120,2496,0),D(-1728,1728,0)]},areas:[region('T 出生庭院',D(-736,-800,128)),region('A 大双门',D(1088,512,0)),region('A 大道',D(1500,1536,0)),region('坑位',D(1792,512,-128)),region('A 包点平台',D(1152,2464,96)),region('A 斜坡',D(64,2688,0)),region('A 小道楼梯',D(384,1840,48)),region('中路猫道',D(-128,1024,0)),region('中路',D(-512,768,0)),region('中门',D(-32,1664,-128)),region('上层隧道',D(-1856,384,0)),region('下层隧道',D(-1248,768,-128)),region('B 隧道出口',D(-1728,1760,0)),region('B 双门',D(-1040,2208,0)),region('B 窗口',D(-1032,2656,64)),region('B 包点平台',D(-1536,2688,0)),region('CT 出生区',D(256,2240,-128))],colors:{floor:0xd7c29c,boundary:0xba9c72,accent:0xb67445},checklist:['t_spawn','long_double_doors','pit','long_lane','a_platform','a_ramp','short_stairs','catwalk','middle','mid_doors','upper_tunnel','lower_tunnel','b_tunnel_exit','b_doors','b_window','b_platform','ct_spawn'],reference:{unit:CLASSIC_UNIT,origin:{xShift:384,yCenter:1120,zBase:-128},source:'de_dust2.bsp v30 from wasm cs1.6-web',landmarks:{window:D(-1032,2656,64),upperSouth:D(-1856,64,0),upperNorth:D(-1728,1680,0),lower:D(-1248,768,-128),aRampLow:D(-160,2688,-128),aRampHigh:D(320,2688,96),longDoor:D(1088,512,0),midDoor:D(-32,1664,-128),midApproach:D(-512,1200,0),midExit:D(-480,1728,-128)},levels:{T:128,CT:-128,A:96,B:0,upper:0,lower:-128}}};
 export const MAPS=[assault,dust2];
 for(const m of MAPS){m.spawns.CT=m.mode==='rescue'?m.spawns.attack:m.spawns.defend;m.spawns.T=m.mode==='rescue'?m.spawns.defend:m.spawns.attack;m.routes=Object.fromEntries(Object.entries(m.routeVariants).map(([id,r])=>[id,r[0]]));m.defenseByTactic=Object.fromEntries(m.tactics.map(t=>[t.id,m.defensePositions]));m.hostageSpawns=m.hostagePositions;}

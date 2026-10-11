@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
+import {gzipSync} from 'node:zlib';
 const files=fs.readdirSync('dist/assets');
 const scripts=files.filter(f=>f.endsWith('.js')), styles=files.filter(f=>f.endsWith('.css'));
 if(scripts.length!==1||styles.length!==1)throw new Error('Standalone expects a single self-contained JS and CSS entry');
@@ -9,4 +11,12 @@ licenses['ASSETS.md']=fs.readFileSync('ASSETS.md','utf8');
 const notices=JSON.stringify(licenses).replace(/</g,'\\u003c');
 html=html.replace(/<script type="module"[^>]*src="[^"]+"[^>]*><\/script>/,'').replace(/<link rel="stylesheet"[^>]*>/,()=>`<style>${css}</style>`).replace('</body>',()=>`<script id="asset-licenses" type="application/json">${notices}</script><script type="module">${js.replace(/<\/script/gi,'<\\/script')}</script></body>`);
 fs.writeFileSync('Bean-Frontier.html',html);
+fs.mkdirSync('site/licenses',{recursive:true});
+fs.writeFileSync('site/index.html',html);fs.writeFileSync('site/.nojekyll','');
+for(const name of fs.readdirSync('licenses'))fs.copyFileSync('licenses/'+name,'site/licenses/'+name);
+const bytes=Buffer.from(html),manifest={version:JSON.parse(fs.readFileSync('package.json','utf8')).version,bytes:bytes.length,gzipBytes:gzipSync(bytes,{level:9}).length,sha256:createHash('sha256').update(bytes).digest('hex')};
+if(manifest.bytes>3_000_000)throw new Error('Single-file artifact exceeds 3 MB mobile budget');
+const baseline='releases/Bean-Frontier-v3.1.0-2026-10-11.html';if(fs.existsSync(baseline)){const baselineGzip=gzipSync(fs.readFileSync(baseline),{level:9}).length;if(manifest.gzipBytes>baselineGzip*1.1)throw new Error('Compressed artifact exceeds 110% baseline budget');}
+fs.writeFileSync('site/artifact-manifest.json',JSON.stringify(manifest,null,2)+'\n');
+console.log('Single-file size/hash:',JSON.stringify(manifest));
 console.log('Created standalone Bean-Frontier.html with embedded assets, fonts and full license notices');

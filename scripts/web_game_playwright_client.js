@@ -152,6 +152,8 @@ async function getCanvasHandle(page) {
 async function captureCanvasPngBase64(canvas) {
   return canvas.evaluate((c) => {
     if (!c || typeof c.toDataURL !== "function") return "";
+    // Render and read in the same task: production disables preserveDrawingBuffer.
+    window.advanceTime?.(0);
     const data = c.toDataURL("image/png");
     const idx = data.indexOf(",");
     return idx === -1 ? "" : data.slice(idx + 1);
@@ -285,6 +287,7 @@ async function main() {
   });
 
   await page.addInitScript({ content: makeVirtualTimeShim() });
+  await page.addInitScript(()=>localStorage.setItem('bean-frontier-onboarding',JSON.stringify({version:1})));
   await page.goto(args.url, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(500);
   await page.evaluate(() => {
@@ -297,6 +300,7 @@ async function main() {
   if (args.clickSelector) {
     try {
       await page.click(args.clickSelector, { timeout: 5000 });
+      await page.waitForFunction(()=>!window.render_game_to_text||JSON.parse(render_game_to_text()).mode==='playing');
       await page.waitForTimeout(250);
     } catch (err) {
       console.warn("Failed to click selector", args.clickSelector, err);

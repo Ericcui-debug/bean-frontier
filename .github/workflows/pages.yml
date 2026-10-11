@@ -1,4 +1,4 @@
-name: Deploy game to GitHub Pages
+name: Verify and publish game
 on:
   push:
     branches: [main]
@@ -11,20 +11,53 @@ concurrency:
   group: github-pages
   cancel-in-progress: true
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '23.11.0'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Verify geometry and rules
+        run: npm run bake:check && npm run test:ci
+      - name: Rebuild the tested single-file artifact
+        run: |
+          cp site/artifact-manifest.json "$RUNNER_TEMP/expected-artifact.json"
+          npm run build
+          node scripts/check-artifact.mjs "$RUNNER_TEMP/expected-artifact.json"
+      - name: Start isolated Codex test browser on port 9333
+        run: |
+          npx playwright install --with-deps chromium
+          CHROME_TEST_BINARY=$(node --input-type=module -e "import {chromium} from 'playwright'; process.stdout.write(chromium.executablePath())")
+          "$CHROME_TEST_BINARY" --headless=new --no-sandbox --use-angle=swiftshader --enable-unsafe-swiftshader --remote-debugging-address=127.0.0.1 --remote-debugging-port=9333 --user-data-dir="$RUNNER_TEMP/bean-frontier-codex-profile" > "$RUNNER_TEMP/chrome.log" 2>&1 &
+          python3 -m http.server 5180 --bind 127.0.0.1 --directory site > "$RUNNER_TEMP/http.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:9333/json/version > /dev/null && curl --silent --fail http://127.0.0.1:5180/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Exercise built browser and offline artifact
+        run: npm run test:browser && npm run test:offline
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-verification
+          path: output
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
   deploy:
+    needs: verify
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout release
-        uses: actions/checkout@v6
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Upload website
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: site
-      - name: Publish website
+      - name: Publish verified artifact
         id: deployment
         uses: actions/deploy-pages@v4

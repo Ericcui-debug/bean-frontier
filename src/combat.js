@@ -39,6 +39,10 @@ export function createCombat({g,world,player,actors,getTime,onDown=()=>{},onHit=
   dir.addScaledVector(right,(spreadRandom()-.5)*spread*2).addScaledVector(up,(spreadRandom()-.5)*spread*2).normalize();
   const far=eye.clone().addScaledVector(dir,130),sightWall=world.blocked(eye,far),sightActor=actorHit(eye,far,actor);let sightT=sightWall?.t??1;if(sightActor&&sightActor.t<sightT)sightT=Math.min(sightT,sightActor.t+.001);
   const target=eye.clone().lerp(far,sightT),muzzle=new THREE.Vector3();
+  // The camera hit is mathematically on a face. Round-off can leave the
+  // muzzle segment a fraction short and drop wall impacts; cross that face
+  // by two millimetres and let the same collision ray return the surface.
+  if(sightWall&&sightT===sightWall.t)target.addScaledVector(dir,.002);
   if(camera&&camera.userData?.muzzle){camera.userData.muzzle.getWorldPosition(muzzle);}else if(actor.muzzle&&actor.body&&actor.gun){
    // AI fires before its movement/pose pass: sync to this actor's current
    // position and aim so the obstruction ray starts at the visible barrel.

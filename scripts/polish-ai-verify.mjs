@@ -44,9 +44,10 @@ for(const map of ['assault','dust2']){
 const passResults=[];
 for(const fps of [15,30,60]){
  const {game:g,world}=setup(false,'assault');g.start();g.update(15);g.actors.forEach(a=>a.alive=false);
- const a=g.actors[2],friend=g.actors[1],enemy=g.actors[5];Object.assign(a,{x:16,y:7.42,z:3,alive:true,stance:'crouch',height:.88,eye:.72,goal:{x:16,y:7.42,z:-4},aiMode:'push',decisionAt:Infinity,path:[],pathTarget:null,repathAt:0,yaw:0});Object.assign(friend,{x:16,y:7.42,z:1.9,alive:true,isPlayer:true,stance:'crouch',height:.88,eye:.72});Object.assign(enemy,{x:1000,y:0,z:1000,alive:true,isPlayer:true});
- for(let i=0;i<fps*8;i++){g.update(1/fps);assert.ok(a.x>=14.6+a.radius-.001&&a.x<=17.4-a.radius+.001,'yield stays inside duct');}
- check(a.z< -3.5,'stationary friend passed in narrow duct '+fps);check(a.goal.x===16&&a.goal.z===-4&&!a.passRoute,'sidepass preserves original goal and clears temporary route '+fps);
+ const q=world.lowZones[0],x=(q.x0+q.x1)/2+.35,z=q.z1-6,y=world.solids.find(s=>s.type==='deck'&&s.y0>=q.y0-.01&&s.y1<q.y0+.4&&x>=s.x0&&x<=s.x1&&z>=s.z0&&z<=s.z1).y1,goal={x,y,z:q.z0+2};
+ const a=g.actors[2],friend=g.actors[1],enemy=g.actors[5];Object.assign(a,{x,y,z,alive:true,stance:'crouch',height:.88,eye:.72,goal,aiMode:'push',decisionAt:Infinity,path:[],pathTarget:null,repathAt:0,yaw:0});Object.assign(friend,{x,y,z:z-1.1,alive:true,isPlayer:true,stance:'crouch',height:.88,eye:.72});Object.assign(enemy,{x:1000,y:0,z:1000,alive:true,isPlayer:true});
+ for(let i=0;i<fps*8;i++){g.update(1/fps);assert.ok(a.x>=q.x0+a.radius-.001&&a.x<=q.x1-a.radius+.001,'yield stays inside duct');}
+ check(a.z<goal.z+.5,'stationary friend passed in narrow duct '+fps);check(a.goal.x===goal.x&&a.goal.z===goal.z&&!a.passRoute,'sidepass preserves original goal and clears temporary route '+fps);
  passResults.push([a.x,a.y,a.z].map(v=>Math.round(v*1000)));
  g.ai.reset();check(!a.passRoute&&a.friendBlocked===0,'round reset clears passing memory '+fps);
 }

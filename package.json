@@ -1,6 +1,6 @@
 {
   "name": "bean-frontier",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -11,13 +11,19 @@
     "test:mobile": "node scripts/polish-mobile-verify.mjs --screenshots",
     "test:route": "node scripts/classic-desktop-verify.mjs assault && node scripts/classic-desktop-verify.mjs dust2",
     "test:upgrade": "npm test && npm run test:route && npm run test:mobile",
-    "test:audit": "node scripts/classic-final-audit.mjs",
+    "test:audit": "node scripts/space-audit-verify.mjs && node scripts/space-release-audit.mjs",
     "test:offline": "node scripts/offline-smoke.mjs",
     "test:pages": "node scripts/pages-smoke.mjs",
     "bake:maps": "node scripts/bake-classic-nav.mjs",
-    "test:polish": "node scripts/polish-ai-verify.mjs && node scripts/polish-combat-verify.mjs && node scripts/polish-mobile-layout-verify.mjs && node scripts/classic-route-timing.mjs"
+    "test:polish": "node scripts/polish-ai-verify.mjs && node scripts/polish-combat-verify.mjs && node scripts/polish-mobile-layout-verify.mjs && node scripts/classic-route-timing.mjs",
+    "bake:check": "node scripts/bake-classic-nav.mjs --check",
+    "test:loading": "node scripts/navigation-pack-verify.mjs",
+    "test:browser": "node scripts/polish-mobile-verify.mjs --screenshots && node scripts/space-mobile-verify.mjs --screenshots && node scripts/space-runtime-verify.mjs && node scripts/space-release-audit.mjs",
+    "prepare:pages": "node scripts/prepare-pages.mjs",
+    "test:ci": "npm test && npm run test:polish && npm run test:loading && node scripts/space-audit-verify.mjs && node scripts/space-release-audit.mjs --pure"
   },
   "dependencies": {
+    "fflate": "0.8.3",
     "navcat": "0.4.1",
     "three": "0.185.1",
     "three-mesh-bvh": "0.9.15",
