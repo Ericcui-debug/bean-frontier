@@ -22,7 +22,8 @@ page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()
 const state=()=>page.evaluate(()=>JSON.parse(render_game_to_text()));
 const advance=async ms=>{await page.evaluate(ms=>advanceTime(ms),ms);await page.waitForTimeout(80);await page.evaluate(()=>advanceTime(0));};
 const place=async p=>page.evaluate(p=>{Object.assign(__gameTest.game.player,{x:p.x,y:p.y,z:p.z,vx:0,vy:0,vz:0,grounded:true,ladderId:null,ladderCooldown:0});__gameTest.input.reset();__gameTest.game.camera.update(0,__gameTest.game.player);advanceTime(0);},p);
-const tap=async selector=>{const b=await page.locator(selector).boundingBox();assert.ok(b,'button exists '+selector);await page.touchscreen.tap(b.x+b.width/2,b.y+b.height/2);};
+// Locator.tap uses real touch events and waits for the rendered button to be enabled.
+const tap=async selector=>page.locator(selector).tap();
 const pointer=async(selector,type,id,dx=0,dy=0)=>{
  const r=await page.locator(selector).boundingBox();assert.ok(r,selector+' touch target');
  const point={id,x:r.x+r.width/2+dx,y:r.y+r.height/2+dy,radiusX:4,radiusY:4,force:1};
@@ -35,7 +36,7 @@ try{
   const url=new URL(base);url.search='test&lazy';await page.goto(url.href);await page.waitForFunction(()=>!!window.__gameTest);
   await tap('[data-map="'+map.id+'"]');await tap('#start-btn');await page.waitForFunction(()=>JSON.parse(render_game_to_text()).mode==='playing',null,{timeout:90000});
   await page.evaluate(()=>{__gameTest.game.ai.update=()=>{};__gameTest.game.player.money=8000;});
-  await tap('[data-buy="3"]');await tap('#buy-close');await advance(15010);
+  await tap('[data-buy="3"]');check(map.id+' real mobile purchase equips and selects sniper',await page.evaluate(()=>__gameTest.game.player.equipment[1]?.id===3&&__gameTest.game.player.slot===1),(await state()).player);await tap('#buy-close');await advance(15010);
   await tap('[data-action="aim"]');await advance(250);let s=await state();
   check(map.id+' real mobile aim button activates sniper scope',s.camera.scope&&s.camera.fov<25&&await page.locator('#scope-overlay').isVisible(),s.camera);
   check(map.id+' scoped view hides weapon mesh',!await page.evaluate(()=>__gameTest.game.camera.view.visible));
