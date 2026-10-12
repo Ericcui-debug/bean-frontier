@@ -108,7 +108,7 @@ export function createAI(g,world,actors,{state,combat,hostages,nearestInteractio
    for(const other of actors){if(other===a||!other.alive||Math.abs(other.y-a.y)>=CHARACTER.height)continue;const dx=a.x-other.x,dz=a.z-other.z,d=Math.hypot(dx,dz),minimum=a.radius+other.radius;if(d<minimum&&d>.001)sweepActor(a,dx/d*(minimum-d)*(other.isPlayer?1:.5),dz/d*(minimum-d)*(other.isPlayer?1:.5),world);}
    if(a.y< -8){a.hp=0;a.alive=false;continue;}
    // Facing follows the limited turn pass; movement never snaps it around.
-   a.gunPitch=-(a.pitch||0);poseBean(a,time,true);
+   a.gunPitch=-(a.pitch||0);poseBean(a,time,true,world);
    if(a.holdUse)interactActor(a,true);
    // No firing and stationary body are required throughout the hold.
    const use=nearestInteraction(a);if(a.holdUse&&use&&['plant','defuse'].includes(use.type)){const moving=gap(a,old)>.006; // callback installed by game below

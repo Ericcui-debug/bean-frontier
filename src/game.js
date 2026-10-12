@@ -49,7 +49,7 @@ export function createGame(g,world){
   if(!defenders){finishRound(state.attackTeam,world.mode==='rescue'?'守卫方全灭':'防守方全灭');return;}
   if(!attackers&&state.phase==='active')finishRound(1-state.attackTeam,world.mode==='rescue'?'反恐方全灭':'进攻方全灭');
  }
- function placeActors(fresh=false){actors.forEach(a=>{const keep=!fresh&&a.alive&&state.round>1;combat.resetActor(a,keep);a.hp=a.maxHp=100;a.alive=true;a.downHandled=false;a.armor=keep?a.armor:0;a.role=a.team===state.attackTeam?'attack':'defend';a.faction=a.team===state.ctTeam?'CT':'T';const spawn=world.spawns[a.role][a.id%5];Object.assign(a,{...spawn,vx:0,vy:0,vz:0,kx:0,kz:0,grounded:true,pitch:0,gunPitch:0,yaw:spawn.yaw??(a.role==='attack'?0:Math.PI),invuln:0,interaction:null,healthUntil:0,stance:'standing',height:CHARACTER.height,eye:CHARACTER.eye,traverseForward:0,traverseJump:false,traverseWaypoint:null,ladderId:null,ladderCooldown:0,footDistance:0,lastMotion:null});a.group.visible=a!==player;poseBean(a,state.time,true);if(fresh)a.money=800;});}
+ function placeActors(fresh=false){actors.forEach(a=>{const keep=!fresh&&a.alive&&state.round>1;combat.resetActor(a,keep);a.hp=a.maxHp=100;a.alive=true;a.downHandled=false;a.armor=keep?a.armor:0;a.role=a.team===state.attackTeam?'attack':'defend';a.faction=a.team===state.ctTeam?'CT':'T';const spawn=world.spawns[a.role][a.id%5];Object.assign(a,{...spawn,vx:0,vy:0,vz:0,kx:0,kz:0,grounded:true,pitch:0,gunPitch:0,yaw:spawn.yaw??(a.role==='attack'?0:Math.PI),invuln:0,interaction:null,healthUntil:0,stance:'standing',height:CHARACTER.height,eye:CHARACTER.eye,traverseForward:0,traverseJump:false,traverseWaypoint:null,ladderId:null,ladderCooldown:0,footDistance:0,lastMotion:null,worldWeaponScale:1,weaponPoseAt:state.time});a.group.visible=a!==player;poseBean(a,state.time,true,world);if(fresh)a.money=800;});}
  function beginRound(){
   const half=state.round===5;if(half){state.attackTeam=1-state.attackTeam;notify('交换攻守 · 存活装备与资金保留');}
   state.ctTeam=world.mode==='rescue'?state.attackTeam:1-state.attackTeam;
@@ -113,7 +113,7 @@ export function createGame(g,world){
    if(state.jumpBuffer>0&&state.coyote>0&&!['low','crouch'].includes(player.stance)){player.vy=7.4;player.grounded=false;state.jumpBuffer=state.coyote=0;}player.traverseForward=controls.z;player.traverseJump=!!controls.jump||state.jumpBuffer>0;moveActor(player,dt,world);
    // First-person eye must not enter another bean's body while strafing past it.
    for(const other of actors){if(other===player||!other.alive||Math.abs(other.y-player.y)>=CHARACTER.height)continue;const dx=player.x-other.x,dz=player.z-other.z,d=Math.hypot(dx,dz),minimum=player.radius+other.radius;if(d<minimum&&d>.001)sweepActor(player,dx/d*(minimum-d),dz/d*(minimum-d),world);}
-   player.yaw=camera.state.yaw;poseBean(player,state.time,true);player.group.visible=false;if(player.y< -8)down(player);
+   player.yaw=camera.state.yaw;poseBean(player,state.time,true,world);player.group.visible=false;if(player.y< -8)down(player);
    camera.update(dt,player);if(controls.fire)combat.fire(player,g.camera);
    if(player.alive)advanceInteraction(player,controls.interactHeld,mag>.04||Math.hypot(player.vx,player.vz)>.25,controls.fire,dt);
   }

@@ -6,7 +6,7 @@
 
 直接复用 Glock、MP5、AK47、AWP 四个原创 GLB，不包含 Quaternius 衍生人物或手臂，也未引入上游重型 GPU 材质、天空或后期管线。原始文件保存在 `src/assets/tinystrike/`；`src/assets/tinystrike-inline.js` 是同一字节的 Base64 嵌入版本，供离线单文件使用。角色及第一人称豆豆手臂仍由本项目生成。
 
-纹理模块保持上游原始字节；本项目通过 `src/visual/surfaces.js` 直接调用墙面、地面、木箱与金属生成函数，并使用 Three.js 标准材质及轻量 UV 重复参数。
+纹理模块保持上游原始字节；当前版本通过 `src/visual/surfaces.js` 直接调用木箱与金属生成函数；砖墙、砂岩、灰泥、混凝土与沙地由本项目 `architectural-textures.js` 生成，UV 按世界米制投影，采用 Three.js 标准材质。
 
 | 本地素材 | 原始字节 | SHA-256 |
 | --- | ---: | --- |

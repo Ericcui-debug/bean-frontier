@@ -1,0 +1,5 @@
+// Pure rectangle clipping shared by decoration generation and its regression.
+export function intersectRect(a,b){const r={x0:Math.max(a.x0,b.x0),x1:Math.min(a.x1,b.x1),z0:Math.max(a.z0,b.z0),z1:Math.min(a.z1,b.z1)};return r.x1-r.x0>1e-5&&r.z1-r.z0>1e-5?r:null;}
+export function subtractRect(a,b){const overlap=intersectRect(a,b);if(!overlap)return [a];return [{x0:a.x0,x1:overlap.x0,z0:a.z0,z1:a.z1},{x0:overlap.x1,x1:a.x1,z0:a.z0,z1:a.z1},{x0:overlap.x0,x1:overlap.x1,z0:a.z0,z1:overlap.z0},{x0:overlap.x0,x1:overlap.x1,z0:overlap.z1,z1:a.z1}].filter(r=>r.x1-r.x0>1e-5&&r.z1-r.z0>1e-5);}
+export function clipToSupports(rect,supports,obstacles=[]){const accepted=[];for(const support of supports){const overlap=intersectRect(rect,support);if(!overlap)continue;let pieces=[overlap];for(const occupied of [...obstacles,...accepted])pieces=pieces.flatMap(piece=>subtractRect(piece,occupied));accepted.push(...pieces.map(piece=>({...piece,supportIndex:support.index})));}return accepted;}
+export function overlapsVolume(a,b,epsilon=1e-5){return a.x0<b.x1-epsilon&&a.x1>b.x0+epsilon&&a.z0<b.z1-epsilon&&a.z1>b.z0+epsilon&&a.y0<b.y1-epsilon&&a.y1>b.y0+epsilon;}

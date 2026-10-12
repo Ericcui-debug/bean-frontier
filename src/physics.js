@@ -32,7 +32,8 @@ export function moveActor(r,dt,world){
  const old={x:r.x,y:r.y,z:r.z};sweepActor(r,r.vx*dt,r.vz*dt,world);
  const floor=world.groundAt(r.x,r.z,old.y+.38),oldFloor=world.groundAt(old.x,old.z,old.y+.38);
  if(r.grounded&&floor!==null&&oldFloor!==null&&Math.abs(old.y-oldFloor)<.38&&Math.abs(floor-oldFloor)<.38){r.y=floor;r.vy=0;}else{r.grounded=false;r.vy-=20*dt;let ny=r.y+r.vy*dt;
-  for(const s of world.solids){if(!s.active||r.x<s.x0-r.radius*.5||r.x>s.x1+r.radius*.5||r.z<s.z0-r.radius*.5||r.z>s.z1+r.radius*.5)continue;if(s.shape!=='ramp'&&r.vy>0&&old.y+r.height<=s.y0&&ny+r.height>=s.y0){ny=s.y0-r.height;r.vy=0;}}
+  // Boxes and closed ramps both have a horizontal underside at y0.
+  for(const s of world.solids){if(!s.active||r.x<s.x0-r.radius*.5||r.x>s.x1+r.radius*.5||r.z<s.z0-r.radius*.5||r.z>s.z1+r.radius*.5)continue;if(r.vy>0&&old.y+r.height<=s.y0&&ny+r.height>=s.y0){ny=s.y0-r.height;r.vy=0;}}
   // Top contacts use the visible support rectangle, including roof edges.
   if(floor!==null&&r.vy<=0&&old.y>=floor-.08&&ny<=floor){r.y=floor;r.vy=0;r.grounded=true;}else r.y=ny;
  }

@@ -1,6 +1,7 @@
 import {THREE,C} from './gfx.js';
 import {CHARACTER,stanceDimensions} from './dimensions.js';
 import {createWeaponVisual} from './weapon-models.js';
+import {worldWeaponScale} from './visual/world-weapon-clearance.js';
 // Lifetime-shared geometry: never dispose a buffer still used by another
 // soldier, hostage, or instanced part bucket during a round reset.
 const torsoGeometry=new THREE.CapsuleGeometry(.53,.7,8,20),armGeometry=new THREE.CapsuleGeometry(.145,.46,5,12);
@@ -42,14 +43,16 @@ export function updateBeanWeapon(r){
  if(current)r.muzzle.position.copy(current.muzzle.position);else r.muzzle.position.set(0,.02,-.7);
  const faction=r.faction==='CT'||r.faction==='T'?r.faction:r.role==='defend'?'CT':'T';if(r.visualFaction!==faction){const color=faction==='CT'?0x354c62:0x736148;r.vestPanels.forEach(m=>m.material.color.setHex(color));r.sleeves?.forEach(m=>m.material.color.setHex(color));r.badge.material.color.setHex(faction==='CT'?0x95d2ea:0xf3c777);r.visualFaction=faction;}
 }
-export function poseBean(r,time,aim=false){
+export function poseBean(r,time,aim=false,world=r.poseWorld){
+ if(world)r.poseWorld=world;
  const size=stanceDimensions(r);updateBeanWeapon(r);
  const speed=Math.hypot(r.vx,r.vz),running=speed>.2,cycle=time*speed*1.6,bob=running?Math.abs(Math.sin(cycle))*.06:Math.sin(time*2)*.025;
  r.group.position.set(r.x,r.y,r.z);r.group.rotation.y=-r.yaw;r.body.position.y=bob*CHARACTER.scale*size.verticalScale;r.body.rotation.z=running?Math.sin(cycle)*.025:0;r.body.rotation.x=0;r.body.scale.set(CHARACTER.scale,CHARACTER.scale*size.verticalScale,CHARACTER.scale);r.health.position.y=size.healthBar;r.aiming=aim;
  r.arms.forEach((a,i)=>{a.rotation.x=aim?1.35+(i?.12:0):running?Math.sin(cycle+i*Math.PI)*.55:.05;a.rotation.z=aim?(i?-.3:.18):(i?1:-1)*.3;});
  r.feet.forEach((f,i)=>{f.position.z=-.055+(running?Math.sin(cycle+i*Math.PI)*.22:0);f.position.y=.17-bob+(running?Math.max(0,Math.cos(cycle+i*Math.PI))*.12:0)+(r.grounded?0:.07);f.rotation.x=r.grounded?0:.2;});
  // Lower the bean in ducts while keeping a rigid gun's shape and pitch.
- r.gunRig?.scale.set(1,1/size.verticalScale,1);if(r.gunRig)r.gunRig.rotation.y=-(r.recoilAim?.yaw||0);r.gun.position.y=1.1*size.verticalScale;r.gun.position.z=-.58+r.recoil*.11;r.gun.rotation.x=-(r.gunPitch||0)+(r.recoilAim?.pitch||0);r.gun.scale.setScalar(1);
+ r.gunRig?.scale.set(1,1/size.verticalScale,1);if(r.gunRig)r.gunRig.rotation.y=-(r.recoilAim?.yaw||0);r.gun.position.set(.39,1.1*size.verticalScale,-.58+r.recoil*.11);r.gun.rotation.x=-(r.gunPitch||0)+(r.recoilAim?.pitch||0);r.gun.scale.setScalar(1);
+ if(world?.solids&&!r.isPlayer&&!r.isHostage){const compact=worldWeaponScale(r,world,time);r.gun.position.x*=compact;r.gun.position.z*=compact;r.gun.scale.setScalar(compact);}
  r.healthFill.scale.x=Math.max(.001,r.hp/r.maxHp);r.healthFill.position.x=-(1-r.hp/r.maxHp)*.52;
 }
 const displayPoint=new THREE.Vector3(),barPoint=new THREE.Vector3(),inverseParent=new THREE.Quaternion(),armDirection=new THREE.Vector3(),armDown=new THREE.Vector3(0,-1,0);
@@ -60,7 +63,7 @@ export function updateBeanDisplay(r,camera,world,time,isPlayer=false){
  // Hands follow the actual pitched gun, including recoil, rather than leaving
  // rigid horizontal arms behind when aiming far above or below the bean.
  r.group.updateMatrixWorld(true);
- if(r.aiming){for(let i=0;i<r.arms.length;i++){armDirection.set(i===0?-.04:0,i===0?-.015:-.17,i===0?-.19:.035);r.gun.localToWorld(armDirection);r.body.worldToLocal(armDirection);armDirection.sub(r.arms[i].position).normalize();r.arms[i].quaternion.setFromUnitVectors(armDown,armDirection);}}
+ if(r.aiming){for(let i=0;i<r.arms.length;i++){armDirection.set(i===0?-.04:0,i===0?-.015:-.17,i===0?-.19:.035);r.gun.localToWorld(armDirection);r.body.worldToLocal(armDirection);armDirection.sub(r.arms[i].position);r.arms[i].scale.y=Math.max(.25,Math.min(1.65,armDirection.length()/.55));armDirection.normalize();r.arms[i].quaternion.setFromUnitVectors(armDown,armDirection);}}
  r.group.updateMatrixWorld(true);
  r.health.visible=false;
  if(isPlayer||!r.alive||r.hp>=r.maxHp||time>=(r.healthUntil??0))return;

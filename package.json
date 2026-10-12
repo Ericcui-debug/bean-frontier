@@ -1,6 +1,6 @@
 {
   "name": "bean-frontier",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "type": "module",
   "private": true,
   "scripts": {
@@ -18,9 +18,10 @@
     "test:polish": "node scripts/polish-ai-verify.mjs && node scripts/polish-combat-verify.mjs && node scripts/polish-mobile-layout-verify.mjs && node scripts/classic-route-timing.mjs",
     "bake:check": "node scripts/bake-classic-nav.mjs --check",
     "test:loading": "node scripts/navigation-pack-verify.mjs",
-    "test:browser": "node scripts/polish-mobile-verify.mjs --screenshots && node scripts/space-mobile-verify.mjs --screenshots && node scripts/space-runtime-verify.mjs && node scripts/space-release-audit.mjs",
+    "test:browser": "node scripts/polish-mobile-verify.mjs --screenshots && node scripts/space-mobile-verify.mjs --screenshots && node scripts/space-runtime-verify.mjs && node scripts/space-release-audit.mjs && node scripts/surface-browser-verify.mjs",
     "prepare:pages": "node scripts/prepare-pages.mjs",
-    "test:ci": "npm test && npm run test:polish && npm run test:loading && node scripts/space-audit-verify.mjs && node scripts/space-release-audit.mjs --pure"
+    "test:ci": "npm test && npm run test:polish && npm run test:loading && node scripts/space-audit-verify.mjs && node scripts/space-release-audit.mjs --pure && npm run test:surfaces",
+    "test:surfaces": "node scripts/map-decoration-verify.mjs && node scripts/exposed-surfaces-verify.mjs && node scripts/surface-jump-verify.mjs && node scripts/world-weapon-verify.mjs && node scripts/surface-final-review.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
