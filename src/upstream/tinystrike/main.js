@@ -243,10 +243,10 @@ renderer.setAnimationLoop(now=>{
  while(accumulator+1e-10>=STEP){fixedStep(STEP);accumulator-=STEP;}
  if(touch && !game.paused && !game.loading && ['live','planted'].includes(game.state.phase)){
   qualityTime+=elapsed;qualitySum+=elapsed;qualityFrames++;
-  if(qualityTime>3){const mean=qualitySum/qualityFrames,target=1/(game.settings.targetFps||30);const next=mean>target*1.4?Math.max(1,game.perf.pixelRatio-.1):mean<target*.8?Math.min(1.5,game.perf.pixelRatio+.05):game.perf.pixelRatio;if(next!==game.perf.pixelRatio){game.perf.pixelRatio=next;resize();}qualityTime=qualitySum=qualityFrames=0;}
+  if(qualityTime>3){const mean=qualitySum/qualityFrames,target=1/(game.settings.targetFps||60);const next=mean>target*1.4?Math.max(1,game.perf.pixelRatio-.1):mean<target*.8?Math.min(1.5,game.perf.pixelRatio+.05):game.perf.pixelRatio;if(next!==game.perf.pixelRatio){game.perf.pixelRatio=next;resize();}qualityTime=qualitySum=qualityFrames=0;}
  }
  renderTime+=elapsed;
- const interval=game.paused?.1:touch?1/(game.settings.targetFps||30):0;
+ const interval=game.paused?.1:touch?1/(game.settings.targetFps||60):0;
  if(renderTime>=interval){game.perf.frameMs=renderTime*1000;frames++;render(Math.min(renderTime,.5));renderTime=interval?renderTime%interval:0;}
 });
 window.advanceTime=ms=>{
@@ -271,7 +271,7 @@ window.render_game_to_text=()=>{
  bomb:{planted:s.bomb.planted,site:s.bomb.site,timer:s.phase==='planted'?s.timer:0,carrier:s.bomb.carrierId,dropped:game.bots._bombDropped,droppedPosition:game.bots._bombDropped?vec(game.bots._droppedBombPos):null,position:vec(s.bomb.pos),plantProgress:s.bomb.plantProgress||0,defuseProgress:s.bomb.defuseProgress||0},
  teamAlive:{ct:game.bots.aliveOf('ct')+(p.alive&&p.team==='ct'?1:0),t:game.bots.aliveOf('t')+(p.alive&&p.team==='t'?1:0)},
  teammates:game.bots.all.filter(b=>b.team===p.team).map(b=>({name:b.name,alive:b.alive,position:vec(b.pos),weapon:b.weaponId})),
- quality:{tier:game.gfxQuality,post:!!game.post,antialias:renderer.getContext().getContextAttributes().antialias,pixelRatio:renderer.getPixelRatio(),targetFps:touch?(game.settings.targetFps||30):60},perf:game.perf});
+ quality:{tier:game.gfxQuality,post:!!game.post,antialias:renderer.getContext().getContextAttributes().antialias,pixelRatio:renderer.getPixelRatio(),targetFps:touch?(game.settings.targetFps||60):60},perf:game.perf});
 };
 if(game.debug){
  window.__game=game;

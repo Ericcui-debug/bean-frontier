@@ -138,7 +138,7 @@ export default class GameSettings {
     this.lookSensitivity = SETTINGS_LIMITS.lookSensitivity.default;
     this.brightnessEv = SETTINGS_LIMITS.brightnessEv.default;
     this.scopeSensitivity = 0.6; this.scope2Sensitivity = 0.35;
-    this.buttonSize = 1; this.buttonOpacity = 0.7; this.fps = 30;
+    this.buttonSize = 1; this.buttonOpacity = 0.7; this.fps = 60;
     this.musicEnabled = true; this.soundEnabled = true;
     this.bindings = defaultBindings();
     this._physicalToCanonical = new Map();
@@ -235,7 +235,7 @@ export default class GameSettings {
     this.lookSensitivity = SETTINGS_LIMITS.lookSensitivity.default;
     this.brightnessEv = SETTINGS_LIMITS.brightnessEv.default;
     this.scopeSensitivity = 0.6; this.scope2Sensitivity = 0.35;
-    this.buttonSize = 1; this.buttonOpacity = 0.7; this.fps = 30;
+    this.buttonSize = 1; this.buttonOpacity = 0.7; this.fps = 60;
     this.musicEnabled = true; this.soundEnabled = true;
     this.bindings = defaultBindings();
     this._rebuildLookup();
@@ -269,7 +269,7 @@ export default class GameSettings {
       this.scope2Sensitivity = clampStep(parsed.scope2Sensitivity ?? parsed.sniperSensitivity ?? 0.35, SETTINGS_LIMITS.scope2Sensitivity);
       this.buttonSize = clampStep(parsed.buttonSize ?? 1, SETTINGS_LIMITS.buttonSize);
       this.buttonOpacity = clampStep(parsed.buttonOpacity ?? 0.7, SETTINGS_LIMITS.buttonOpacity);
-      this.fps = (parsed.fps ?? parsed.targetFps) === 60 ? 60 : 30;
+      this.fps = Number(parsed.fps ?? parsed.targetFps) === 30 ? 30 : 60;
       this.musicEnabled = (parsed.musicEnabled ?? parsed.music) !== false;
       this.soundEnabled = (parsed.soundEnabled ?? parsed.sfxEnabled ?? parsed.sound) !== false;
       this.bindings = sanitizeBindings(parsed.bindings);

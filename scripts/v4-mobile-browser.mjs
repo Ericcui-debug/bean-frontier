@@ -14,6 +14,9 @@ try {
  await page.waitForFunction(()=>__game.world._loaded&&!__game.loading&&__game.state.phase==='freeze',null,{timeout:120000});
  await page.evaluate(()=>{advanceTime(0);advanceTime(0);});
  assert.equal(await page.evaluate(()=>__game.player.team),'t');
+ assert.equal(await page.evaluate(()=>JSON.parse(render_game_to_text()).quality.targetFps),60,'fresh phone session defaults to60FPS');
+ assert.equal(await page.locator('[data-preference="fps"]').inputValue(),'60','phone settings UI selects60FPS');
+ assert.match(await page.locator('[data-preference="fps"] option[value="60"]').textContent(),/默认/,'phone settings label identifies60FPS default');
  const session=await context.newCDPSession(page);
  const rect=sel=>page.locator(sel).evaluate(el=>{const r=el.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};});
  let stick=await rect('.tc-stick'),fire=await rect('.tc-fire');

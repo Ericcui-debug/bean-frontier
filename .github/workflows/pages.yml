@@ -13,6 +13,12 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    name: verify (${{ matrix.suite }})
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [desktop, mobile, offline]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -22,6 +28,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Verify geometry and rules
+        if: matrix.suite == 'desktop'
         run: npm run test:ci
       - name: Rebuild the tested single-file artifact
         run: |
@@ -40,19 +47,29 @@ jobs:
           done
           exit 1
       - name: Exercise built browser and offline artifact
-        run: npm run test:browser && npm run test:offline
+        run: |
+          case "${{ matrix.suite }}" in
+            desktop) node scripts/v4-browser-verify.mjs ;;
+            mobile) node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-map-browser.mjs && node scripts/v4-arsenal-browser.mjs ;;
+            offline) npm run test:offline ;;
+          esac
       - name: Upload verification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: game-verification
+          name: game-verification-${{ matrix.suite }}
           path: output
+  package:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site
   deploy:
-    needs: verify
+    needs: package
     runs-on: ubuntu-latest
     environment:
       name: github-pages

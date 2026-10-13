@@ -3266,7 +3266,7 @@ export default class HUD {
       '" value="' + brightnessEv + '"></label>' +
       '</div>' +
       '<div class="mn-settings-tuning">' + ['scopeSensitivity','scope2Sensitivity','buttonSize','buttonOpacity'].map((key,index) => '<label class="mn-setting"><span><strong>' + ['一档镜灵敏度','二档镜灵敏度','按钮大小','按钮透明度'][index] + '</strong><output>' + settings[key].toFixed(2) + '</output></span><input type="range" data-preference="' + key + '" min="' + SETTINGS_LIMITS[key].min + '" max="' + SETTINGS_LIMITS[key].max + '" step="' + SETTINGS_LIMITS[key].step + '" value="' + settings[key] + '"></label>').join('') +
-      '<label class="mn-setting"><span>手机帧率</span><select data-preference="fps"><option value="30">30 FPS · 默认</option><option value="60">60 FPS</option></select></label><label class="mn-setting"><span>音乐</span><input type="checkbox" data-preference="musicEnabled"></label><label class="mn-setting"><span>音效</span><input type="checkbox" data-preference="soundEnabled"></label></div>' +
+      '<label class="mn-setting"><span>手机帧率</span><select data-preference="fps"><option value="60">60 FPS · 默认</option><option value="30">30 FPS</option></select></label><label class="mn-setting"><span>音乐</span><input type="checkbox" data-preference="musicEnabled"></label><label class="mn-setting"><span>音效</span><input type="checkbox" data-preference="soundEnabled"></label></div>' +
       '<section class="mn-bindings-section" aria-labelledby="hud-bindings-title">' +
       '<div class="mn-bindings-head"><strong id="hud-bindings-title">键盘设置</strong>' +
       '<span>点选操作，再按下新按键</span></div>' +
