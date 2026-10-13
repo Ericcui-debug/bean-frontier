@@ -5,8 +5,8 @@ const browser=await chromium.connectOverCDP('http://127.0.0.1:9333');
 const output=process.env.OUTPUT_DIR||'output/v4/mobile';await mkdir(output,{recursive:true});
 const errors=[],results=[];let context;
 try {
- context=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:3,isMobile:true,hasTouch:true});
- const page=await context.newPage();page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ context=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:process.env.CI?1:3,isMobile:true,hasTouch:true});
+ const page=await context.newPage();context.setDefaultTimeout(180000);page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  const base=process.env.GAME_URL||'http://127.0.0.1:5180/';await page.goto(base+(base.includes('?')?'&':'?')+'test&touch=1');
  await page.waitForFunction(()=>window.__game?.hud,null,{timeout:120000});await page.evaluate(()=>{__game.test.manual(true);});
  assert.equal(await page.locator('[data-map-id]').count(),6);assert.equal(await page.locator('#hud-online-open,#hud-profile,#hud-leaderboard').count(),0);

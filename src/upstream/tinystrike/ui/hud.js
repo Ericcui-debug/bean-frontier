@@ -553,7 +553,7 @@ export default class HUD {
       this._el.pause.appendChild(panel); panel.hidden = !panel.hidden; panel.addEventListener('click', e => e.stopPropagation());
     });
     this.game.events.on('session:loading', () => { if (this._el.start) this._el.start.disabled = true; for (const button of this._root.querySelectorAll('[data-team],[data-map-id]')) button.disabled = true; });
-    for (const event of ['session:ready','session:error','session:cancel']) this.game.events.on(event, () => { if (this._el.start) this._el.start.disabled = false; for (const button of this._root.querySelectorAll('[data-team],[data-map-id]')) button.disabled = false; });
+    for (const event of ['session:ready','session:error','session:cancel','session:lobby']) this.game.events.on(event, () => { if (this._el.start) this._el.start.disabled = false; for (const button of this._root.querySelectorAll('[data-team],[data-map-id]')) button.disabled = false; });
     this.game.events.on('ui:start', () => { if (this._el.settingsPanel?.parentElement === this._el.pause) this._el.menu.appendChild(this._el.settingsPanel); });
     // initial visibility matches phase 'menu' until first update flips it
     if (this._el.game) this._el.game.style.display = 'none';

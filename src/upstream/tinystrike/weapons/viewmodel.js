@@ -1277,6 +1277,7 @@ export default class ViewModel {
   // actual mechanism instead of a proxy box.
   // ==========================================================================
   _buildProceduralWeapons() {
+    const revision=this._buildRevision=(this._buildRevision||0)+1;
     const library = this.game && this.game.materials;
     if (!library) {
       console.warn('[viewmodel] no material library — keeping primitive weapon models');
@@ -1302,7 +1303,7 @@ export default class ViewModel {
     const ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});
     let built = 0;
     const step = () => {
-      if (this.game.disposed) { resolveReady(); return; }
+      if (this.game.disposed || revision!==this._buildRevision) { resolveReady(); return; }
       const id = queue.shift();
       if (id) {
         const object = weaponInstance(id, library, { viewmodel: true });

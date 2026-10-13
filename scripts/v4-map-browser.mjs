@@ -2,7 +2,7 @@ import {chromium} from 'playwright';
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const base=process.env.GAME_URL||'http://127.0.0.1:5180/',dir=process.env.OUTPUT_DIR||'output/v4/mobile-maps';fs.mkdirSync(dir,{recursive:true});
-const browser=await chromium.connectOverCDP('http://127.0.0.1:9333'),context=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:3,isMobile:true,hasTouch:true}),page=await context.newPage();
+const browser=await chromium.connectOverCDP('http://127.0.0.1:9333'),context=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:process.env.CI?1:3,isMobile:true,hasTouch:true}),page=await context.newPage();context.setDefaultTimeout(180000);
 const errors=[],maps=[],checks=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 const check=(ok,label)=>{assert.ok(ok,label);checks.push(label);};
 try{

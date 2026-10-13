@@ -54,6 +54,7 @@ game.weapons=new Weapons(game);
 game.viewmodel=new ViewModel(game);
 game.combat=new Combat(game);
 game.bots=new Bots(game);
+game.bots._root.visible=false;
 game.rounds=new Rounds(game);
 let accumulator=0,lastTime=performance.now(),renderTime=0,manual=false,generation=0;
 const STEP=1/120;
@@ -77,11 +78,11 @@ game.pause=(reason='暂停')=>{
  game.input.locked=false;
  if(document.pointerLockElement)document.exitPointerLock();
  game.audio.ctx?.suspend().catch(()=>{});
- game.events.emit('game:pause',{reason});
+ game.events.emit('game:pause',{reason});game.renderFrame?.();
 };
 game.resume=()=>{
  if(game.loading||!game.paused)return;
- game.clearInputs();game.paused=false;lastTime=performance.now();
+ game.clearInputs();game.paused=false;lastTime=performance.now();if(!game.debug)manual=false;
  game.input.requestLock();game.audio.ctx?.resume().catch(()=>{});
  game.events.emit('game:resume');
 };
@@ -92,8 +93,8 @@ const resetTransient=()=>{
  game.events.emit('session:reset');
 };
 game.startSession=async()=>{
- if(game.loading||game.state.phase!=='menu')return;
- const ticket=++generation;game.loading=true;resetTransient();
+ if(game.loading||game.contextLost||game.state.phase!=='menu')return;
+ const ticket=++generation;game.loading=true;resetTransient();if(!game.debug)manual=false;
  game.player.team=game.selectedTeam==='t'?'t':'ct';
  const map=game.selectedMapId==='random'?MAP_CATALOG[Math.floor(Math.random()*MAP_CATALOG.length)].id:normalizeMapId(game.selectedMapId);
  game.selectedMapId=map;
@@ -115,7 +116,12 @@ game.startSession=async()=>{
   console.error(error);
  }
 };
-game.cancelLoading=()=>{generation++;game.loading=false;game.state.phase='menu';game.events.emit('session:cancel');};
+game.cancelLoading=()=>{
+ generation++;game.loading=false;game.paused=false;game.state.phase='menu';
+ game.rounds._matchStarted=false;game.clearInputs();game.world.unload();
+ game.rounds._removeBombMesh();game.viewmodel.rig.visible=false;game.bots._root.visible=false;
+ game.events.emit('session:cancel');game.renderFrame?.();
+};
 game.restartSession=()=>{
  if(game.loading)return;
  resetTransient();game.rounds._matchStarted=false;game.weapons._everReset=false;
@@ -171,20 +177,35 @@ game.events.on('ui:start',()=>{
  if(!touch)return;
  document.documentElement.requestFullscreen?.().then(()=>screen.orientation?.lock?.('landscape')).catch(()=>{});
 });
-renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();game.pause('画面恢复中');});
+renderer.domElement.addEventListener('webglcontextlost',e=>{
+ e.preventDefault();game.contextLost=true;generation++;
+ game.viewmodel._buildRevision=(game.viewmodel._buildRevision||0)+1;
+ game.clearInputs();game.loading=false;
+ if(game.state.phase!=='menu')game.pause('画面恢复中');
+});
 renderer.domElement.addEventListener('webglcontextrestored',async()=>{
- if(!game.world._loaded)return;
- game.clearInputs();game.loading=true;game.viewmodel.rig.visible=false;game.bots._root.visible=false;game.events.emit('session:loading',{map:game.selectedMapId});
+ game.contextLost=false;
+ const ticket=++generation,active=game.state.phase!=='menu'&&game.world._loaded;
+ game.clearInputs();game.loading=true;game.viewmodel.rig.visible=false;game.bots._root.visible=false;
+ game.events.emit('session:loading',{map:game.selectedMapId});
  try{
   game.world.unload();game.materials.dispose();
   game.materials=new MaterialSystem({renderer,quality:game.gfxQuality,anisotropy:Math.min(8,renderer.capabilities.getMaxAnisotropy())});
   for(const b of game.bots.all){b.heldWeapon?.removeFromParent();b.heldWeapon=null;b.heldWeaponId=null;}
-  await game.viewmodel._buildProceduralWeapons();
-  game.world.loadMap(game.selectedMapId,{force:true});
-  for(const b of game.bots.all)game.bots._applyGunLook(b);
-  game.bots._root.visible=true;game.loading=false;resize();game.events.emit('session:ready',{map:game.selectedMapId});
-  game.events.emit('hud:notice',{text:'画面已恢复，点击继续'});
- }catch(error){game.loading=false;game.events.emit('session:error',{message:'画面恢复失败，请返回大厅重试'});console.error(error);}
+  // Share the NEW readiness barrier with a cancel→start retry. A stale restore
+  // must never put its old scene back after the user returned to the lobby.
+  game.viewmodel.ready=Promise.all([game.viewmodel._buildProceduralWeapons(),game.viewmodel.assetReady]);
+  await game.viewmodel.ready;
+  if(ticket!==generation)return;
+  if(active){game.world.loadMap(game.selectedMapId,{force:true});for(const b of game.bots.all)game.bots._applyGunLook(b);game.bots._root.visible=true;}
+  game.loading=false;resize();
+  game.events.emit(active?'session:ready':'session:lobby',{map:game.selectedMapId});
+  game.renderFrame?.();
+  if(active)game.events.emit('hud:notice',{text:'画面已恢复，点击继续'});
+ }catch(error){
+  if(ticket!==generation)return;
+  game.loading=false;game.events.emit('session:error',{message:'画面恢复失败，请返回大厅重试'});console.error(error);
+ }
 });
 function fixedStep(dt){
  if(game.paused||game.loading||game.state.phase==='menu'){game.input.update(dt);return;}
@@ -196,7 +217,8 @@ function fixedStep(dt){
  game.simulationTime=(game.simulationTime||0)+dt;game.input.update(dt);
 }
 function render(dt){
- game.world.update?.(dt);game.materials.update?.(dt);
+ if(game.contextLost){game.hud.update(0);game.touchControls.update(0);return;}
+ game.world.update?.(game.paused?0:dt);game.materials.update?.(game.paused?0:dt);
  game.touchControls.update(dt);game.hud.update(dt);
  game.audio.update(game.paused?0:dt);
  const audio=game.audio,settings=game.settings;
@@ -224,13 +246,14 @@ renderer.setAnimationLoop(now=>{
   if(qualityTime>3){const mean=qualitySum/qualityFrames,target=1/(game.settings.targetFps||30);const next=mean>target*1.4?Math.max(1,game.perf.pixelRatio-.1):mean<target*.8?Math.min(1.5,game.perf.pixelRatio+.05):game.perf.pixelRatio;if(next!==game.perf.pixelRatio){game.perf.pixelRatio=next;resize();}qualityTime=qualitySum=qualityFrames=0;}
  }
  renderTime+=elapsed;
- const interval=touch?1/(game.settings.targetFps||30):0;
+ const interval=game.paused?.1:touch?1/(game.settings.targetFps||30):0;
  if(renderTime>=interval){game.perf.frameMs=renderTime*1000;frames++;render(Math.min(renderTime,.5));renderTime=interval?renderTime%interval:0;}
 });
 window.advanceTime=ms=>{
  ms=Number(ms);if(!Number.isFinite(ms)||ms<0)return;
- // Deterministic stepping keeps RAF out until explicit resume in test mode.
- if(game.debug)manual=true;
+ // Explicit time stepping replaces RAF, including production smoke tests.
+ // Ordinary UI start/resume restores the production wall-clock loop.
+ manual=true;
  accumulator+=Math.min(ms,300000)/1000;
  while(accumulator+1e-10>=STEP){fixedStep(STEP);accumulator-=STEP;}
  render(ms/1000);lastTime=performance.now();

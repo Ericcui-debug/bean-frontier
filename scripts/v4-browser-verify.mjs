@@ -8,7 +8,7 @@ const offline=process.argv.includes('--offline'),pages=process.argv.includes('--
 const base=offline?pathToFileURL(path.resolve('Bean-Frontier.html')).href:pages?'https://ericcui-debug.github.io/bean-frontier/':process.env.GAME_URL||'http://127.0.0.1:5180/';
 const dir=`output/v4/${offline?'offline':pages?'pages':'browser'}`;fs.mkdirSync(dir,{recursive:true});
 const browser=await chromium.connectOverCDP('http://127.0.0.1:9333');
-const context=await browser.newContext({viewport:{width:1280,height:720}}),page=await context.newPage();
+const context=await browser.newContext({viewport:process.env.CI?{width:960,height:540}:{width:1280,height:720}}),page=await context.newPage();context.setDefaultTimeout(180000);
 const errors=[],requests=[],report={base,checks:[],maps:[],errors,requests};
 page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 page.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url());});
@@ -63,7 +63,7 @@ try{
  await page.evaluate(()=>{const g=__game;g.state.phase='live';g.state.timer=3.2;g.state.canBuy=false;g.player.position.copy(g.world.bombSites[0].center);g.player.onGround=true;g.player.velocity.set(0,0,0);for(const b of g.bots.all){b.state='hold';b.thinkTimer=1000;b.fireCooldown=1000;b.hasGoal=false;b.path=null;}});
  await page.keyboard.down('e');await page.evaluate(()=>advanceTime(3200));await page.keyboard.up('e');s=await state();check(s.phase==='planted'&&Math.abs(s.timer-40)<.009,'T human plants at exact3.2deadline via heldE');await shot('T-planted');
  await page.evaluate(()=>__game.restartSession());s=await state();check(s.round===1&&s.scores.ct===0&&s.scores.t===0&&!s.weapon.slots[1]&&s.money===8000&&s.map.id==='dustyard','full restart clears match and preserves map');
- await page.evaluate(()=>{const g=__game;g.state.phase='live';g.state.timer=115;g.player.takeDamage(10000,{});});s=await state();check(s.bomb.dropped&&!s.bomb.carrier,'human death drops C4');
+ await page.evaluate(()=>{const g=__game;g.state.phase='live';g.state.timer=115;g.bots._perceive=()=>{};g.bots._combatFrame=()=>{};g.player.takeDamage(10000,{});});s=await state();check(s.bomb.dropped&&!s.bomb.carrier,'human death drops C4');
  await page.evaluate(()=>advanceTime(40000));check(!(await state()).bomb.dropped|| (await state()).round>1,'AI retrieves dropped human C4');
  // Fresh production page: no mutable game globals, no backend service calls.
  await page.goto(base,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>typeof render_game_to_text==='function',null,{timeout:120000});

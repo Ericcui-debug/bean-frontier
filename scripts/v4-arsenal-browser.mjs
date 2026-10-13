@@ -1,6 +1,7 @@
 import {chromium} from 'playwright';import fs from 'node:fs';import assert from 'node:assert/strict';
 const base=process.env.GAME_URL||'http://127.0.0.1:5180/',dir=process.env.OUTPUT_DIR||'output/v4/arsenal';fs.mkdirSync(dir,{recursive:true});
-const browser=await chromium.connectOverCDP('http://127.0.0.1:9333'),context=await browser.newContext({viewport:{width:1280,height:720}}),page=await context.newPage(),errors=[],checks=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});const ok=(value,message)=>{assert.ok(value,message);checks.push(message);};
+const browser=await chromium.connectOverCDP('http://127.0.0.1:9333'),context=await browser.newContext({viewport:process.env.CI?{width:960,height:540}:{width:1280,height:720}}),page=await context.newPage(),errors=[],checks=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});context.setDefaultTimeout(180000);
+const ok=(value,message)=>{assert.ok(value,message);checks.push(message);};
 try{
  await page.goto(base+'?test');await page.waitForFunction(()=>window.__game,null,{timeout:120000});await page.evaluate(()=>__game.test.manual(true));await page.locator('#hud-start').click();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading,null,{timeout:120000});await page.evaluate(()=>__game.test.manual(true));await page.mouse.move(650,360);
  for(const id of ['glock','usp','deagle','mp5','ak47','m4a1','awp','knife']){

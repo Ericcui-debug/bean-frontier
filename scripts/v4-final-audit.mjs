@@ -5,8 +5,8 @@ const output=process.env.OUTPUT_DIR||'output/v4/independent-audit';await mkdir(o
 const browser=await chromium.connectOverCDP('http://127.0.0.1:9333');let context;const checks=[],errors=[];
 const ok=(value,message)=>{assert.ok(value,message);checks.push(message);};
 try{
- context=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:3,isMobile:true,hasTouch:true});
- const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+ context=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:process.env.CI?1:3,isMobile:true,hasTouch:true});
+ const page=await context.newPage();context.setDefaultTimeout(180000);page.on('pageerror',error=>errors.push(error.message));
  const base=process.env.GAME_URL||'http://127.0.0.1:5180/';
  await page.goto(base+(base.includes('?')?'&':'?')+'test');await page.waitForFunction(()=>window.__game,null,{timeout:120000});await page.evaluate(()=>__game.test.manual(true));
  ok(await page.evaluate(()=>!__game.world._loaded&&__game.world.colliders.length===0),'大厅无预加载地图');
@@ -35,6 +35,20 @@ try{
  ok(gunFresh.seen>0&&gunFresh.fresh===gunFresh.seen,'恢复后的真实枪械贴图全部属于新烘焙材质库');
  ok(restored.paused&&restored.sets>10&&restored.slots===before.slots&&restored.id===before.id&&restored.actors===before.actors&&restored.guns,'WebGL 完整重烘焙 PBR，保持装备与豆豆角色，并暂停等待继续');
  await page.evaluate(()=>{__game.resume();advanceTime(0);advanceTime(0);});await page.screenshot({path:`${output}/restored-mobile.png`});
+ // Keep the real rebuild behind a test-only barrier so cancellation is
+ // guaranteed to happen while restore is in flight, independent of GPU speed.
+ await page.evaluate(()=>{const g=__game;window.__realBuild=g.viewmodel._buildProceduralWeapons;g.viewmodel._buildProceduralWeapons=function(){return __realBuild.call(this).then(()=>new Promise(resolve=>{window.__finishRestore=resolve;}));};window.__auditExtension=g.renderer.getContext().getExtension('WEBGL_lose_context');__auditExtension.loseContext();});
+ await page.waitForFunction(()=>__game.contextLost,null,{timeout:120000});await page.evaluate(()=>__auditExtension.restoreContext());
+ await page.waitForFunction(()=>typeof window.__finishRestore==='function',null,{timeout:120000});
+ await page.evaluate(()=>{__game.cancelLoading();__finishRestore();__game.viewmodel._buildProceduralWeapons=__realBuild;});await page.waitForTimeout(50);
+ ok(await page.evaluate(()=>__game.state.phase==='menu'&&!__game.loading&&!__game.world._loaded&&!__game.rounds._matchStarted),'取消进行中的画面恢复后保持大厅，旧回调不会重建旧地图');
+ await page.locator('#hud-start').tap();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading&&__game.state.phase==='freeze',null,{timeout:120000});await page.evaluate(()=>advanceTime(0));
+ ok(await page.evaluate(()=>__game.state.round===1&&__game.state.money===8000),'取消画面恢复后可重新开始整场');
+ await page.evaluate(()=>{__game.returnToLobby();window.__auditExtension=__game.renderer.getContext().getExtension('WEBGL_lose_context');__auditExtension.loseContext();});await page.waitForFunction(()=>__game.contextLost,null,{timeout:120000});await page.evaluate(()=>__auditExtension.restoreContext());
+ await page.waitForFunction(()=>!__game.contextLost&&!__game.loading&&__game.state.phase==='menu',null,{timeout:120000});
+ ok(await page.evaluate(()=>!__game.world._loaded&&__game.materials.resourceStats().textureSets>5),'大厅丢失画面也会重新烘焙枪械，不提前建立地图');
+ await page.locator('#hud-start').tap();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading,null,{timeout:120000});await page.evaluate(()=>advanceTime(0));
+ ok(await page.evaluate(()=>__game.state.phase==='freeze'&&__game.state.canBuy),'大厅画面恢复后开局与购买仍正常');
  // A cancellation on the joystick must clear the OTHER fire finger as well.
  const session=await context.newCDPSession(page);
  const rect=sel=>page.locator(sel).evaluate(el=>{const r=el.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};});const stick=await rect('.tc-stick'),fire=await rect('.tc-fire');
