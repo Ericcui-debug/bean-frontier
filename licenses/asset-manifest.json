@@ -1,42 +1,36 @@
 {
-  "upstream": "guyz/tinystrike",
+  "version": "4.0.0",
+  "upstream": "https://github.com/guyz/tinystrike",
   "commit": "04db555c4fc9f43fef3325c37930ad97a0c27aa3",
-  "license": "licenses/TinyStrike-ISC.txt",
-  "assets": [
+  "three": "0.166.1",
+  "models": [
     {
-      "file": "src/assets/tinystrike/glock.glb",
-      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/assets/models/viewmodels/glock.glb",
-      "bytes": 78684,
-      "sha256": "062b5f7a6abb4befd3370fc03fc3a4f559799a8bcad1c843b5775acb9f9cfc34",
-      "license": "ISC"
+      "path": "assets-tinystrike/models/viewmodels/flashbang.glb",
+      "bytes": 104044,
+      "sha256": "e5a5ad1187715962989527ce122cc5f331e906ec190774e281278dd4da8933c5"
     },
     {
-      "file": "src/assets/tinystrike/mp5.glb",
-      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/assets/models/viewmodels/mp5.glb",
-      "bytes": 78596,
-      "sha256": "ed1aa2c4b3fe973dbd1e29bc208762564f7c3ddf17751d75d4c09fab0109ac92",
-      "license": "ISC"
+      "path": "assets-tinystrike/models/viewmodels/hegrenade.glb",
+      "bytes": 82592,
+      "sha256": "82d44075a51f0565970b0498b443b20ca2e993f38d3f8f75b3ad9dc19b7e3094"
     },
     {
-      "file": "src/assets/tinystrike/ak47.glb",
-      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/assets/models/viewmodels/ak47.glb",
-      "bytes": 77928,
-      "sha256": "10cb53dc7af80ecc6737d257026e14c808868f88db206c049e172b5048280886",
-      "license": "ISC"
+      "path": "assets-tinystrike/models/viewmodels/knife.glb",
+      "bytes": 46276,
+      "sha256": "1a483ef97f34d378de58386d4abbc66fb9cf662976e0b77f78f4fb1d194559ac"
     },
     {
-      "file": "src/assets/tinystrike/awp.glb",
-      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/assets/models/viewmodels/awp.glb",
-      "bytes": 139200,
-      "sha256": "969843cecb93d114b162b7847aaf8fa688b1a561b24e4ce89f99ee5fd5088fed",
-      "license": "ISC"
-    },
-    {
-      "file": "src/visual/tinystrike-textures.js",
-      "source": "https://github.com/guyz/tinystrike/blob/04db555c4fc9f43fef3325c37930ad97a0c27aa3/src/world/textures.js",
-      "bytes": 19019,
-      "sha256": "1de758464c29f93f4c2ebdbfa541ed5b54d2aec430af9c1db41b302e640ccc1c",
-      "license": "ISC"
+      "path": "assets-tinystrike/models/viewmodels/smokegrenade.glb",
+      "bytes": 103980,
+      "sha256": "ecac1a0336abcd13ffbece4bc43095ae8d8719ce4b30dc325c30a9d05dff3d57"
     }
-  ]
+  ],
+  "maps": [
+    "dustyard",
+    "frostline",
+    "neon_foundry",
+    "harbor",
+    "citadel"
+  ],
+  "characters": "Bean Frontier procedural beans; no human model or arms loaded"
 }

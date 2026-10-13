@@ -296,10 +296,10 @@ async function main() {
 
   let canvas = await getCanvasHandle(page);
 
-  if(args.selectMap) await page.click("#map-"+args.selectMap);
+  if(args.selectMap) await page.click(`[data-map-id="${args.selectMap}"]`);
   if (args.clickSelector) {
     try {
-      await page.click(args.clickSelector, { timeout: 5000 });
+      await page.click(args.clickSelector, { timeout: 120000 });
       await page.waitForFunction(()=>!window.render_game_to_text||JSON.parse(render_game_to_text()).mode==='playing');
       await page.waitForTimeout(250);
     } catch (err) {

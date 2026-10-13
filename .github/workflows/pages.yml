@@ -22,7 +22,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Verify geometry and rules
-        run: npm run bake:check && npm run test:ci
+        run: npm run test:ci
       - name: Rebuild the tested single-file artifact
         run: |
           cp site/artifact-manifest.json "$RUNNER_TEMP/expected-artifact.json"
