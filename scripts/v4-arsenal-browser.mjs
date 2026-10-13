@@ -2,7 +2,7 @@ import {chromium} from 'playwright';import fs from 'node:fs';import assert from 
 const base=process.env.GAME_URL||'http://127.0.0.1:5180/',dir=process.env.OUTPUT_DIR||'output/v4/arsenal';fs.mkdirSync(dir,{recursive:true});
 const browser=await chromium.connectOverCDP('http://127.0.0.1:9333'),context=await browser.newContext({viewport:{width:1280,height:720}}),page=await context.newPage(),errors=[],checks=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});const ok=(value,message)=>{assert.ok(value,message);checks.push(message);};
 try{
- await page.goto(base+'?test');await page.waitForFunction(()=>window.__game);await page.locator('#hud-start').click();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading,{timeout:120000});await page.evaluate(()=>__game.test.manual(true));await page.mouse.move(650,360);
+ await page.goto(base+'?test');await page.waitForFunction(()=>window.__game,null,{timeout:120000});await page.evaluate(()=>__game.test.manual(true));await page.locator('#hud-start').click();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading,null,{timeout:120000});await page.evaluate(()=>__game.test.manual(true));await page.mouse.move(650,360);
  for(const id of ['glock','usp','deagle','mp5','ak47','m4a1','awp','knife']){
   await page.evaluate(id=>{const g=__game;g.restartSession();g.state.phase='live';g.state.timer=115;g.hud._setBuyOpen(false);g.weapons.give(id);g.weapons.equip(id);g.test.setSeed(123);g.bots._perceive=()=>{};g.bots._combatFrame=()=>{};
    for(const b of g.bots.all){b.state='hold';b.hasGoal=false;b.path=null;b.thinkTimer=1000;b.moveSpeed=0;}

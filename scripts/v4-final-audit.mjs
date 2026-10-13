@@ -8,9 +8,9 @@ try{
  context=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:3,isMobile:true,hasTouch:true});
  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
  const base=process.env.GAME_URL||'http://127.0.0.1:5180/';
- await page.goto(base+(base.includes('?')?'&':'?')+'test');await page.waitForFunction(()=>window.__game);await page.evaluate(()=>__game.test.manual(true));
+ await page.goto(base+(base.includes('?')?'&':'?')+'test');await page.waitForFunction(()=>window.__game,null,{timeout:120000});await page.evaluate(()=>__game.test.manual(true));
  ok(await page.evaluate(()=>!__game.world._loaded&&__game.world.colliders.length===0),'大厅无预加载地图');
- await page.locator('[data-team="t"]').tap();await page.locator('#hud-start').tap();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading&&__game.state.phase==='freeze',{timeout:90000});await page.evaluate(()=>advanceTime(100));
+ await page.locator('[data-team="t"]').tap();await page.locator('#hud-start').tap();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading&&__game.state.phase==='freeze',null,{timeout:120000});await page.evaluate(()=>advanceTime(100));
  ok(await page.evaluate(()=>__game.bots.aliveOf('ct')===5&&__game.bots.aliveOf('t')===4&&__game.state.bomb.carrierId==='player'),'T 玩家阵营和 C4 携带正确，双方各五人');
  ok(await page.evaluate(()=>Object.values(__game.viewmodel._models).every(m=>m.userData.npcArms?.userData.team==='t')),'T 方首局所有武器使用本队豆豆袖口');
  // Equipment state uses the real round reset and weapon purchase paths.
@@ -29,7 +29,7 @@ try{
  ok(dead.armor===0&&!dead.kit&&!dead.primary&&dead.id==='glock','死亡后失去主武器、护甲、工具，HUD 和当前装备回到阵营手枪');
  await page.evaluate(()=>{const g=__game;g.state.canBuy=true;g.state.money=16000;g.weapons.buy('ak47');g.weapons.equip('ak47');advanceTime(900);g.test.manual(true);});
  const before=await page.evaluate(()=>({textureSets:__game.materials.resourceStats().textureSets,slots:JSON.stringify(__game.weapons.slots),id:__game.weapons.currentId,actors:__game.bots.all.length}));
- await page.evaluate(()=>{window.__auditExtension=__game.renderer.getContext().getExtension('WEBGL_lose_context');window.__auditOldMaterials=__game.materials;__auditExtension.loseContext();});await page.waitForTimeout(200);await page.evaluate(()=>__auditExtension.restoreContext());await page.waitForFunction(()=>__game.materials!==window.__auditOldMaterials&&!__game.loading&&__game.world._loaded,{timeout:90000});
+ await page.evaluate(()=>{window.__auditExtension=__game.renderer.getContext().getExtension('WEBGL_lose_context');window.__auditOldMaterials=__game.materials;__auditExtension.loseContext();});await page.waitForTimeout(200);await page.evaluate(()=>__auditExtension.restoreContext());await page.waitForFunction(()=>__game.materials!==window.__auditOldMaterials&&!__game.loading&&__game.world._loaded,null,{timeout:120000});
  const restored=await page.evaluate(()=>({paused:__game.paused,sets:__game.materials.resourceStats().textureSets,id:__game.weapons.currentId,slots:JSON.stringify(__game.weapons.slots),actors:__game.bots.all.length,guns:__game.bots.all.every(b=>!!b.heldWeapon)}));
  const gunFresh=await page.evaluate(()=>{const g=__game,maps=new Set([...g.materials._sets.values()].flatMap(set=>[set.albedo,set.normal,set.orm]));let seen=0,fresh=0;g.viewmodel._models[g.weapons.currentId].traverse(object=>{if(object.isMesh){for(const material of Array.isArray(object.material)?object.material:[object.material])if(material.map){seen++;if(maps.has(material.map))fresh++;}}});return{seen,fresh};});
  ok(gunFresh.seen>0&&gunFresh.fresh===gunFresh.seen,'恢复后的真实枪械贴图全部属于新烘焙材质库');

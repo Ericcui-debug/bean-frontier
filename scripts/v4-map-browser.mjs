@@ -6,9 +6,9 @@ const browser=await chromium.connectOverCDP('http://127.0.0.1:9333'),context=awa
 const errors=[],maps=[],checks=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 const check=(ok,label)=>{assert.ok(ok,label);checks.push(label);};
 try{
- await page.goto(base+'?test',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__game);await page.evaluate(()=>__game.test.manual(true));
+ await page.goto(base+'?test',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__game,null,{timeout:120000});await page.evaluate(()=>__game.test.manual(true));
  for(const id of ['dustyard','frostline','neon_foundry','harbor','citadel']){
-  await page.evaluate(()=>__game.returnToLobby());await page.locator(`[data-map-id="${id}"]`).tap();await page.locator('[data-team="ct"]').tap();const started=Date.now();await page.locator('#hud-start').tap();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading&&__game.state.phase==='freeze',{timeout:120000});
+  await page.evaluate(()=>__game.returnToLobby());await page.locator(`[data-map-id="${id}"]`).tap();await page.locator('[data-team="ct"]').tap();const started=Date.now();await page.locator('#hud-start').tap();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading&&__game.state.phase==='freeze',null,{timeout:120000});
   const entry={id,loadMs:Date.now()-started,views:[]};
   const quality=await page.evaluate(()=>{const g=__game,gl=g.renderer.getContext();return{tier:g.gfxQuality,post:!!g.post,samples:gl.getParameter(gl.SAMPLES),ratio:g.renderer.getPixelRatio(),library:g.materials.resourceStats()};});
   check(quality.tier==='low'&&!quality.post&&quality.samples>=2&&quality.ratio>=1&&quality.ratio<=1.5,`${id}: low native PBR, no HDR, real MSAA and1–1.5ratio`);entry.quality=quality;
@@ -36,7 +36,7 @@ try{
   // entry was recorded before objective checks
  }
  // Repeat visits: each map's scoped texture count must settle to its own count.
- const visits=[];for(const id of ['dustyard','harbor','dustyard','harbor','dustyard']){await page.evaluate(()=>__game.returnToLobby());await page.locator(`[data-map-id="${id}"]`).tap();await page.locator('#hud-start').tap();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading,{timeout:120000});visits.push(await page.evaluate(()=>({id:__game.selectedMapId,resources:__game.materials.resourceStats(),textures:__game.renderer.info.memory.textures})));}
+ const visits=[];for(const id of ['dustyard','harbor','dustyard','harbor','dustyard']){await page.evaluate(()=>__game.returnToLobby());await page.locator(`[data-map-id="${id}"]`).tap();await page.locator('#hud-start').tap();await page.waitForFunction(()=>__game.world._loaded&&!__game.loading,null,{timeout:120000});visits.push(await page.evaluate(()=>({id:__game.selectedMapId,resources:__game.materials.resourceStats(),textures:__game.renderer.info.memory.textures})));}
  check(visits.filter(v=>v.id==='dustyard').every(v=>v.resources.textureSets===visits[0].resources.textureSets),'repeated map visits do not accumulate retired texture sets');
  // Explicit browser cutout simulation supplements plain viewport tests.
  await page.setViewportSize({width:844,height:390});await page.addStyleTag({content:'#touch-controls{--safe-l:47px!important;--safe-r:47px!important;--safe-b:21px!important}'});await page.evaluate(()=>{__game.settings.setPreference('buttonSize',1.3);__game.resume();advanceTime(7000);});

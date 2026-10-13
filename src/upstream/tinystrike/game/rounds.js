@@ -560,6 +560,7 @@ export default class Rounds {
     this._playerDiedThisRound = false;
 
     // Effects/HUD/audio clear + react off these.
+    this._updateCanBuy();
     this.game.events.emit('round:start', { round: s.round });
     this.game.events.emit('round:phase', { phase: 'freeze' });
   }

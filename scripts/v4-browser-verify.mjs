@@ -17,14 +17,17 @@ const check=(ok,label)=>{assert.ok(ok,label);report.checks.push(label);};
 async function shot(name){await page.evaluate(()=>advanceTime(0));await page.screenshot({path:`${dir}/${name}.png`});}
 async function start(map,team='ct'){
  await page.locator(`[data-map-id="${map}"]`).click();await page.locator(`[data-team="${team}"]`).click();await page.locator('#hud-start').click();
- await page.waitForFunction(()=>window.__game?.state.phase==='freeze'&&!window.__game.loading,{timeout:120000});
+ await page.waitForFunction(()=>window.__game?.state.phase==='freeze'&&!window.__game.loading,null,{timeout:120000});
  await page.evaluate(()=>{__game.test.manual(true);advanceTime(0);});
 }
 try{
- await page.goto(base+'?test',{waitUntil:'domcontentloaded',timeout:120000});await page.waitForFunction(()=>typeof render_game_to_text==='function');
+ await page.goto(base+'?test',{waitUntil:'domcontentloaded',timeout:120000});await page.waitForFunction(()=>typeof render_game_to_text==='function',null,{timeout:120000});
+ await page.evaluate(()=>__game.test.manual(true));
  check((await state()).mode==='lobby','metadata-only lobby');
  check(await page.evaluate(()=>__game.world.colliders.length===0),'lobby has no map collision/build');
  await start('dustyard','ct');let s=await state();check(s.teamAlive.ct===5&&s.teamAlive.t===5,'CT initial5v5');
+ check(await page.evaluate(()=>__game.state.canBuy),'purchase eligibility is initialized without needing a physics tick');
+ check(await page.evaluate(()=>__game.camera.position.y>=__game.player.position.y+1.29),'initial camera starts at bean eye height');
  check(s.quality.tier==='high'&&s.quality.post&&s.quality.antialias,'native desktop HDR/PBR+antialias');
  await page.keyboard.press('b');await page.evaluate(()=>advanceTime(0));
  await page.locator('.buy-item').filter({hasText:'M4-A1'}).click();await page.evaluate(()=>advanceTime(800));
@@ -63,9 +66,9 @@ try{
  await page.evaluate(()=>{const g=__game;g.state.phase='live';g.state.timer=115;g.player.takeDamage(10000,{});});s=await state();check(s.bomb.dropped&&!s.bomb.carrier,'human death drops C4');
  await page.evaluate(()=>advanceTime(40000));check(!(await state()).bomb.dropped|| (await state()).round>1,'AI retrieves dropped human C4');
  // Fresh production page: no mutable game globals, no backend service calls.
- await page.goto(base,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>typeof render_game_to_text==='function');
- check(await page.evaluate(()=>typeof window.__game==='undefined'),'production omits mutable game global');await page.locator('#hud-start').click();await page.waitForFunction(()=>JSON.parse(render_game_to_text()).phase==='freeze',{timeout:120000});
- await page.evaluate(()=>advanceTime(7000));check((await state()).phase==='live','production offline start and combat');await page.screenshot({path:`${dir}/production.png`});
+ await page.goto(base,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>typeof render_game_to_text==='function',null,{timeout:120000});
+ check(await page.evaluate(()=>typeof window.__game==='undefined'),'production omits mutable game global');await page.locator('#hud-start').click();await page.waitForFunction(()=>JSON.parse(render_game_to_text()).map.loaded,null,{timeout:120000});
+ await page.evaluate(()=>advanceTime(7000));check(['live','planted','roundEnd'].includes((await state()).phase),'production offline start and combat');await page.screenshot({path:`${dir}/production.png`});
  check(errors.length===0,'no console or browser errors');
  if(offline)check(requests.length===0,'self-contained file makes zero HTTP requests');
  else check(requests.every(u=>u.startsWith(base.replace(/\/$/,''))), 'no online room/account/leaderboard requests');

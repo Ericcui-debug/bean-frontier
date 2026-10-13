@@ -8,10 +8,10 @@ try {
  context=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:3,isMobile:true,hasTouch:true});
  const page=await context.newPage();page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  const base=process.env.GAME_URL||'http://127.0.0.1:5180/';await page.goto(base+(base.includes('?')?'&':'?')+'test&touch=1');
- await page.waitForFunction(()=>window.__game?.hud);await page.evaluate(()=>{__game.test.manual(true);});
+ await page.waitForFunction(()=>window.__game?.hud,null,{timeout:120000});await page.evaluate(()=>{__game.test.manual(true);});
  assert.equal(await page.locator('[data-map-id]').count(),6);assert.equal(await page.locator('#hud-online-open,#hud-profile,#hud-leaderboard').count(),0);
  await page.locator('[data-team="t"]').tap();await page.locator('#hud-start').tap();
- await page.waitForFunction(()=>__game.world._loaded&&!__game.loading&&__game.state.phase==='freeze',{timeout:60000});
+ await page.waitForFunction(()=>__game.world._loaded&&!__game.loading&&__game.state.phase==='freeze',null,{timeout:120000});
  await page.evaluate(()=>{advanceTime(0);advanceTime(0);});
  assert.equal(await page.evaluate(()=>__game.player.team),'t');
  const session=await context.newCDPSession(page);

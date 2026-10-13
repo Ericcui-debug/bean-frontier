@@ -106,7 +106,7 @@ game.startSession=async()=>{
   await game.world.loadMap(map,{force:true});
   if(ticket!==generation){game.world.unload();return;}
   game.bots.configureRoster(game.player.team==='ct'?4:5,game.player.team==='t'?4:5);
-  game.bots._root.visible=true;game.rounds._startMatch();game.loading=false;
+  game.bots._root.visible=true;game.rounds._startMatch();game.player.update(0);game.viewmodel.update(0);game.loading=false;
   game.input.requestLock();loading?.finish?.();
   game.events.emit('session:ready',{map});
  }catch(error){
@@ -120,7 +120,7 @@ game.restartSession=()=>{
  if(game.loading)return;
  resetTransient();game.rounds._matchStarted=false;game.weapons._everReset=false;
  game.rounds._removeBombMesh();game.rounds._cosmeticArmed=false;
- game.rounds._startMatch();game.input.requestLock();game.events.emit('session:ready',{map:game.selectedMapId});
+ game.rounds._startMatch();game.player.update(0);game.viewmodel.update(0);game.input.requestLock();game.events.emit('session:ready',{map:game.selectedMapId});
 };
 game.returnToLobby=()=>{
  generation++;game.loading=false;resetTransient();game.state.phase='menu';game.state.buyOpen=false;
