@@ -8,7 +8,7 @@ test('mobile keeps native MSAA resolution range and large/small screen resize st
 });
 test('adaptive scale ignores startup and pause stalls, downshifts sustained misses and recovers with hysteresis',()=>{
  const b=new RenderBudget();const max=b.resize(1280,720,2);for(let n=0;n<100;n++)b.observe(.008,60);assert.equal(b.ratio,max);
- for(let n=0;n<200;n++)b.observe(1/30,60);assert.ok(b.ratio<max);assert.ok(b.ratio>=1);const low=b.ratio;
+ for(let n=0;n<200;n++)b.observe(1/30,60);assert.ok(b.ratio<max);assert.ok(b.ratio>=b.min);const low=b.ratio;
  b.observe(2,60);for(let n=0;n<200;n++)b.observe(1/60,60);assert.equal(b.ratio,low);
  for(let n=0;n<500;n++)b.observe(1/60,60);assert.ok(b.ratio>low);assert.ok(b.ratio<=b.max);
 });
@@ -21,4 +21,8 @@ test('60FPS pacing handles59.94/60/90/119.88/120/144Hz without alternating surpl
 test('30FPS pacing, slow refresh and pause do not run a render catch-up burst',()=>{
  for(const refresh of [60,90,120,144]){const p=new RenderPacer();let n=0;for(let i=0;i<refresh*10;i++)if(p.advance(1/refresh,30))n++;assert.ok(Math.abs(n-300)<=1,`${refresh}: ${n}`);}
  const p=new RenderPacer();assert.equal(p.advance(1/15,60),true);assert.equal(p.advance(0,60),false);p.reset();assert.equal(p.advance(1/120,60),false);
+});
+
+test('failed resolution levels are not retried repeatedly; a new map restores full automatic budget',()=>{
+ const b=new RenderBudget();const max=b.resize(1440,900,2);for(let n=0;n<250;n++)b.observe(1/30,60);const ceiling=b.ceiling;assert.ok(ceiling<max);for(let n=0;n<3600;n++)b.observe(1/60,60);assert.ok(b.ratio<=ceiling);b.restore();assert.equal(b.ratio,max);assert.equal(b.ceiling,max);
 });

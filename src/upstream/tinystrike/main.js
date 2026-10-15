@@ -107,6 +107,7 @@ game.startSession=async()=>{
   await game.viewmodel.ready;
   for(const [id,model] of Object.entries(game.viewmodel._models))game.viewmodel._attachNPCArms(model,id);
   if(ticket!==generation)return;
+  renderBudget.restore();resize();
   await game.world.loadMap(map,{force:true});
   if(ticket!==generation){game.world.unload();return;}
   game.bots.configureRoster(game.player.team==='ct'?4:5,game.player.team==='t'?4:5);
