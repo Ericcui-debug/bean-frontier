@@ -1,18 +1,18 @@
 {
   "name": "bean-frontier",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5180 --strictPort",
     "build": "vite build && node scripts/standalone.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 5181",
-    "test": "node --test scripts/v4-world-verify.mjs scripts/v4-rules-verify.mjs scripts/v4-pose-verify.mjs && node scripts/v4-combat-verify.mjs && node scripts/v4-mobile-layout-verify.mjs && node scripts/v4-ai-pose-verify.mjs",
+    "test": "node --test scripts/v4-world-verify.mjs scripts/v4-rules-verify.mjs scripts/v4-pose-verify.mjs scripts/v4-render-budget-verify.mjs && node scripts/v4-combat-verify.mjs && node scripts/v4-mobile-layout-verify.mjs && node scripts/v4-ai-pose-verify.mjs",
     "test:ci": "npm test",
     "bake:check": "node --test scripts/v4-world-verify.mjs",
-    "test:browser": "node scripts/v4-browser-verify.mjs && node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-map-browser.mjs && node scripts/v4-arsenal-browser.mjs && node scripts/v4-pose-browser.mjs && node scripts/v4-crouch-feedback-verify.mjs",
+    "test:browser": "node scripts/v4-browser-verify.mjs && node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-map-browser.mjs && node scripts/v4-arsenal-browser.mjs && node scripts/v4-pose-browser.mjs && node scripts/v4-crouch-feedback-verify.mjs && node scripts/v4-render-loop-browser.mjs",
     "test:mobile": "node scripts/v4-mobile-browser.mjs",
-    "test:offline": "node scripts/v4-browser-verify.mjs --offline && node scripts/v4-pose-browser.mjs --offline && node scripts/v4-crouch-feedback-verify.mjs --offline",
+    "test:offline": "node scripts/v4-browser-verify.mjs --offline && node scripts/v4-pose-browser.mjs --offline && node scripts/v4-crouch-feedback-verify.mjs --offline && node scripts/v4-render-loop-browser.mjs --offline",
     "test:pages": "node scripts/v4-browser-verify.mjs --pages",
     "prepare:pages": "node scripts/prepare-pages.mjs"
   },

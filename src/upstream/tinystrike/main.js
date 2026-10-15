@@ -21,6 +21,7 @@ import Effects from './effects/effects.js';
 import {DEFAULT_MAP_ID,normalizeMapId,MAP_CATALOG} from './maps/catalog.js';
 import {CHARACTER,LOW_CHARACTER} from '../../dimensions.js';
 import {poseForActor} from '../../character-pose.js';
+import {RenderBudget,RenderPacer} from '../../render-budget.js';
 
 const search=new URLSearchParams(location.search),touch=shouldEnableTouchControls();
 const loading=globalThis.TINY_STRIKE_LOADING;
@@ -57,7 +58,8 @@ game.combat=new Combat(game);
 game.bots=new Bots(game);
 game.bots._root.visible=false;
 game.rounds=new Rounds(game);
-let accumulator=0,lastTime=performance.now(),renderTime=0,manual=false,generation=0;
+let accumulator=0,lastTime=performance.now(),manual=false,generation=0;
+const renderBudget=new RenderBudget(touch),renderPacer=new RenderPacer();
 const STEP=1/120;
 const paint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
@@ -71,7 +73,7 @@ game.clearInputs=()=>{
  game.input._releaseAll(false);
  game.touchControls?.reset?.();
  w._releaseQueued=false;
- accumulator=0;
+ accumulator=0;renderPacer.reset();renderBudget.reset();
 };
 game.pause=(reason='暂停')=>{
  if(game.state.phase==='menu'||game.loading)return;
@@ -155,7 +157,8 @@ function resize(){
  root.style.setProperty('--layout-width',`${width}px`);root.style.setProperty('--layout-height',`${height}px`);
  root.style.setProperty('--app-width',`${width}px`);root.style.setProperty('--app-height',`${height}px`);
  root.style.setProperty('--app-left',`${visual?.offsetLeft||0}px`);root.style.setProperty('--app-top',`${visual?.offsetTop||0}px`);
- const ratio=touch?Math.min(Math.max(1,devicePixelRatio||1),game.perf.pixelRatio):Math.min(devicePixelRatio||1,2);
+ const ratio=renderBudget.resize(width,height,devicePixelRatio||1);
+ game.perf.pixelRatio=ratio;
  renderer.setPixelRatio(ratio);renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();game.post?.setSize();
  game.events.emit('viewport:changed',{width,height});
 }
@@ -233,7 +236,7 @@ function render(dt){
  loading?.finish?.();
 }
 game.renderFrame=()=>render(0);
-let perfTime=0,frames=0,qualityTime=0,qualitySum=0,qualityFrames=0;
+let perfTime=0,frames=0;
 renderer.setAnimationLoop(now=>{
  const elapsed=Math.max(0,(now-lastTime)/1000);lastTime=now;
  if(manual)return;
@@ -241,14 +244,20 @@ renderer.setAnimationLoop(now=>{
  if(perfTime>=1){game.fps=frames/perfTime;frames=0;perfTime=0;}
  accumulator+=Math.min(elapsed,.5);
  if(game.paused||game.loading)accumulator=0;
+ const simulationStart=performance.now();
  while(accumulator+1e-10>=STEP){fixedStep(STEP);accumulator-=STEP;}
- if(touch && !game.paused && !game.loading && ['live','planted'].includes(game.state.phase)){
-  qualityTime+=elapsed;qualitySum+=elapsed;qualityFrames++;
-  if(qualityTime>3){const mean=qualitySum/qualityFrames,target=1/(game.settings.targetFps||60);const next=mean>target*1.4?Math.max(1,game.perf.pixelRatio-.1):mean<target*.8?Math.min(1.5,game.perf.pixelRatio+.05):game.perf.pixelRatio;if(next!==game.perf.pixelRatio){game.perf.pixelRatio=next;resize();}qualityTime=qualitySum=qualityFrames=0;}
+ game.perf.simulationMs=performance.now()-simulationStart;
+ const targetFps=touch?(game.settings.targetFps||60):60;
+ if(renderPacer.advance(elapsed,game.paused?10:targetFps)){
+  const frameDt=renderPacer.frameDt;game.perf.frameMs=frameDt*1000;
+  const start=performance.now();frames++;render(Math.min(frameDt,.5));game.perf.renderCpuMs=performance.now()-start;
+  if(!game.paused&&!game.loading&&game.world._loaded&&renderBudget.observe(frameDt,targetFps)){
+   // A resize changes only render targets; maps, PBR, shadows and MSAA remain.
+   const width=renderer.domElement.clientWidth,height=renderer.domElement.clientHeight;
+   renderer.setPixelRatio(renderBudget.ratio);renderer.setSize(width,height,false);game.post?.setSize();game.perf.pixelRatio=renderBudget.ratio;
+  }
  }
- renderTime+=elapsed;
- const interval=game.paused?.1:touch?1/(game.settings.targetFps||60):0;
- if(renderTime>=interval){game.perf.frameMs=renderTime*1000;frames++;render(Math.min(renderTime,.5));renderTime=interval?renderTime%interval:0;}
+
 });
 window.advanceTime=ms=>{
  ms=Number(ms);if(!Number.isFinite(ms)||ms<0)return;
@@ -262,7 +271,7 @@ window.advanceTime=ms=>{
 window.render_game_to_text=()=>{
  const p=game.player,w=game.weapons,s=game.state,pose=poseForActor(p);
  const vec=v=>v?{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3)}:null;
- return JSON.stringify({version:'4.0.1',coordinateSystem:'meters; +X east, +Z south, +Y up',
+ return JSON.stringify({version:'4.0.2',coordinateSystem:'meters; +X east, +Z south, +Y up',
  mode:game.loading?'loading':game.paused?'paused':s.phase==='menu'?'lobby':'playing',phase:s.phase,
  map:{id:game.selectedMapId,name:MAP_CATALOG.find(m=>m.id===game.selectedMapId)?.name,loaded:!!game.world._loaded,bounds:game.world.bounds,available:MAP_CATALOG.map(m=>m.id)},
  rules:CONFIG.MATCH,round:s.round,scores:s.scores,timer:+s.timer.toFixed(3),money:s.money,

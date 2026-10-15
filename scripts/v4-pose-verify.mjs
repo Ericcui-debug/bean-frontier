@@ -91,3 +91,16 @@ test('death releases held weapon and relaxes arms; the body rests on the floor a
  gun.visible=true;animateBeanDeath(a,2);assert.equal(gun.visible,false);
  a.corpseSettled=false;animateBeanActor(a,1/120,null);assert.equal(gun.visible,true);assert.equal(a.bean.deathArmPose,null);near(a.mesh.rotation.x,0);
 });
+
+test('misses outside the actor broad phase do not touch or re-pose its mesh',()=>{
+ const untouched={get bean(){throw new Error('unrelated actor was posed');}};
+ assert.equal(raycastBeanBody(100,1,100,0,0,1,10,0,0,0,1.552,untouched,{}).distance,-1);
+});
+
+test('optimized rest-gun clearance ray matches the actual full transform across stance and aim',()=>{
+ for(const c of [0,.5,1])for(const pitch of [-.8,0,.8]){
+  const a=actor(c),gun=new T.Group();gun.position.set(.03,-.02,.04);gun.userData.muzzle=[0,0,-.8];a.bean.gunAnchor.add(gun);a.heldWeapon=gun;a.yaw=.6;a.aimPitch=pitch;let sample;
+  animateBeanActor(a,1/120,{raycast(o,d,max){sample={origin:o.clone(),direction:d.clone(),max};return null;}});
+  const muzzle=beanMuzzleWorld(a),delta=muzzle.sub(sample.origin);near(delta.length()+.05,sample.max);near(delta.normalize().dot(sample.direction),1);
+ }
+});

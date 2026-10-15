@@ -52,6 +52,7 @@ export function createBeanActor(bot){
  bot.bean={body,shell,face,limbs,feet,gunAnchor,hitMeshes:[shell,mask,...feet],pose:{},phase:0,retract:0,clearanceClock:0,world:null};bot.parts=null;root.userData.bean=true;root.userData.bot=bot;return root;
 }
 const origin=new THREE.Vector3(),direction=new THREE.Vector3(),down=new THREE.Vector3(0,-1,0),target=new THREE.Vector3();
+const restMatrix=new THREE.Matrix4(),restPosition=new THREE.Vector3(),restRotation=new THREE.Quaternion(),restAngles=new THREE.Euler(),unitScale=new THREE.Vector3(1,1,1);
 function applyPose(bot){
  const b=bot.bean,p=poseForActor(bot,b.pose);bot.mesh.position.copy(bot.pos);bot.mesh.rotation.set(0,bot.yaw||0,0);
  b.body.scale.setScalar(CHARACTER.scale);b.body.position.y=0;b.shell.morphTargetInfluences[0]=p.crouch;
@@ -61,21 +62,28 @@ function applyPose(bot){
  b.gunAnchor.rotation.set((bot.aimPitch||0)*(1-.85*tuck)+(bot.fireAnim||0)*.07,.65*tuck,0);
  const run=Math.min(1,(bot.moveSpeed||0)/4.6);
  b.feet.forEach((foot,i)=>{const wave=Math.sin(b.phase+i*Math.PI);foot.position.set((i===0?-1:1)*p.footSpread,.17+Math.abs(wave)*.025*run,p.footZ+wave*.19*run*(1-.45*p.crouch));foot.rotation.x=wave*.16*run;});
- b.gunAnchor.updateWorldMatrix(true,false);
- b.limbs.forEach((joint,i)=>{joint.position.set((i===0?-1:1)*.4,p.shoulderY/CHARACTER.scale,p.shoulderZ/CHARACTER.scale);target.set(i===0?-.05:0,i===0?-.02:-.12,i===0?-.28:0);b.gunAnchor.localToWorld(target);b.body.worldToLocal(target);direction.copy(target).sub(joint.position);joint.scale.y=Math.max(.25,Math.min(1.4,direction.length()/.55));joint.quaternion.setFromUnitVectors(down,direction.normalize());});
+ b.gunAnchor.updateMatrix();
+ b.limbs.forEach((joint,i)=>{joint.position.set((i===0?-1:1)*.4,p.shoulderY/CHARACTER.scale,p.shoulderZ/CHARACTER.scale);target.set(i===0?-.05:0,i===0?-.02:-.12,i===0?-.28:0);target.applyMatrix4(b.gunAnchor.matrix);direction.copy(target).sub(joint.position);joint.scale.y=Math.max(.25,Math.min(1.4,direction.length()/.55));joint.quaternion.setFromUnitVectors(down,direction.normalize());});
  if(bot.heldWeapon)bot.heldWeapon.scale.setScalar(1);
  bot.mesh.updateWorldMatrix(true,true);return p;
 }
 export function animateBeanActor(bot,dt,world){
  const b=bot.bean;if(!b)return;b.world=world||b.world;b.deathSupport=null;b.deathArmPose=null;if(bot.heldWeapon)bot.heldWeapon.visible=true;
  b.phase+=Math.max(0,bot.moveSpeed||0)*dt*2.4;bot.fireAnim=Math.max(0,(bot.fireAnim||0)-dt*8);
- const p=applyPose(bot);b.clearanceClock-=dt;
+ const p=poseForActor(bot,b.pose);b.clearanceClock-=dt;
  if(bot.heldWeapon&&world?.raycast&&b.clearanceClock<=0){
   b.clearanceClock=1/30;const spec=bot.heldWeapon.userData.muzzle;
   if(Array.isArray(spec)){
    // Sample the rest pose, not the retracted barrel, to avoid wall oscillation.
-   const saved=b.retract;b.retract=0;applyPose(bot);target.fromArray(spec);bot.heldWeapon.localToWorld(target);origin.copy(bot.pos);origin.y+=p.shoulderY;direction.copy(target).sub(origin);const length=direction.length();
-   const hit=length>.01?world.raycast(origin,direction.normalize(),length+.05):null;b.retractTarget=hit?Math.max(0,Math.min(.70,length-hit.distance+.07)):0;b.retract=saved;
+   // Only the gun's rest transform is needed; do not rebuild all limbs and
+   // update their entire world hierarchy two extra times for this ray.
+   bot.mesh.position.copy(bot.pos);bot.mesh.rotation.set(0,bot.yaw||0,0);b.body.updateWorldMatrix(true,false);
+   restPosition.set(.24,p.gunY/CHARACTER.scale,p.gunZ/CHARACTER.scale);
+   restRotation.setFromEuler(restAngles.set((bot.aimPitch||0)+(bot.fireAnim||0)*.07,0,0));
+   restMatrix.compose(restPosition,restRotation,unitScale).premultiply(b.body.matrixWorld);
+   bot.heldWeapon.updateMatrix();target.fromArray(spec).applyMatrix4(bot.heldWeapon.matrix).applyMatrix4(restMatrix);
+   origin.copy(bot.pos);origin.y+=p.shoulderY;direction.copy(target).sub(origin);const length=direction.length();
+   const hit=length>.01?world.raycast(origin,direction.normalize(),length+.05):null;b.retractTarget=hit?Math.max(0,Math.min(.70,length-hit.distance+.07)):0;
   }
  }
  b.retract+=((b.retractTarget||0)-b.retract)*(1-Math.exp(-18*dt));applyPose(bot);
@@ -141,13 +149,15 @@ export function beanMuzzleWorld(bot,out=new THREE.Vector3()) {
 const hitRaycaster=new THREE.Raycaster(),hitList=[],hitBox=new THREE.Box3();
 let proxy=null;
 export function raycastBeanBody(ox,oy,oz,dx,dy,dz,maxDist,fx,fy,fz,height,actor,out={}){
- let targetActor=actor?.bean?actor:null;
- if(!targetActor){if(!proxy){proxy={team:'ct',pos:new THREE.Vector3(),yaw:0,moveSpeed:0,height:CHARACTER.height};proxy.mesh=createBeanActor(proxy);}targetActor=proxy;proxy.pos.set(fx,fy,fz);proxy.height=height;proxy.yaw=actor?.yaw||0;}
- applyPose(targetActor);
  hitRaycaster.ray.origin.set(ox,oy,oz);hitRaycaster.ray.direction.set(dx,dy,dz);hitRaycaster.near=0;hitRaycaster.far=maxDist;
  // Conservative broad phase includes the face and gait, not the held gun.
  const padding=.65;hitBox.min.set(fx-padding,fy-.03,fz-padding);hitBox.max.set(fx+padding,fy+height+.03,fz+padding);
  if(!hitRaycaster.ray.intersectsBox(hitBox)){out.distance=-1;return out;}
+ // Reject unrelated actors before posing any geometry or creating the local
+ // first-person proxy. The exact same visible triangles remain authoritative.
+ let targetActor=actor?.bean?actor:null;
+ if(!targetActor){if(!proxy){proxy={team:'ct',pos:new THREE.Vector3(),yaw:0,moveSpeed:0,height:CHARACTER.height};proxy.mesh=createBeanActor(proxy);}targetActor=proxy;proxy.pos.set(fx,fy,fz);proxy.height=height;proxy.yaw=actor?.yaw||0;}
+ applyPose(targetActor);
  hitList.length=0;const side=material.side;material.side=THREE.DoubleSide;
  try{hitRaycaster.intersectObjects(targetActor.bean.hitMeshes,false,hitList);}finally{material.side=side;}
  const hit=hitList[0];out.distance=hit?.distance??-1;

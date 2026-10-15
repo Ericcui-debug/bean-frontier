@@ -20,3 +20,16 @@
 纯逻辑、完整浏览器134组、离线52组及补充离线手机16组，详情见VERIFICATION.md及本地output/pose-fix/报告。云端完整矩阵通过后由原Pages流程发布，再与以上文件逐字节比对；完成证据追加在本地最终交付记录。任何失败不得作为发布成功记录。
 
 实体iPhone/Safari帧率、发热和手感待实机验证；浏览器触控仿真不等同于实机结论。
+
+
+## 最终发布完成
+
+源码提交：`304f4abee6bcb0a161bea8bc7d1106726acae0fa`。
+[CI与Pages部署](https://github.com/Ericcui-debug/bean-frontier/actions/runs/38714011805)全部成功。
+[在线游玩](https://ericcui-debug.github.io/bean-frontier/)与本地测试HTML逐字节一致：2173062字节，SHA-256 `8aec8983fd0bc5a51046b702a4ef69f8c800f597d0f7d03fe37be5109ad5e489`。
+
+最终本地：纯逻辑90组、构建浏览器134组、离线52组、补充离线手机16组，全部通过。公网追加69组通过，浏览器异常0；实际打开公网站蹲/侧面/手机图片。补测真实顶棚碰撞体及实际触屏按钮，上方受阻时保持蹲姿、松开意图保留，净空恢复后自动站起。真实碰撞体测试不替代实体手机实测。
+
+最终源码另打包为`Bean-Frontier-source-pose-2026-10-15.tar.gz`，不含依赖缓存或递归回退包；对应以上已测试Git提交。闲置审查任务全部完成，无继续运行的子任务。
+
+最终机器可读证据：本地`output/pose-fix/release-verification.json`。实体iPhone/Safari仍未实测。
