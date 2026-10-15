@@ -12,7 +12,7 @@
     "bake:check": "node --test scripts/v4-world-verify.mjs",
     "test:browser": "node scripts/v4-browser-verify.mjs && node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-map-browser.mjs && node scripts/v4-arsenal-browser.mjs && node scripts/v4-pose-browser.mjs && node scripts/v4-crouch-feedback-verify.mjs && node scripts/v4-render-loop-browser.mjs",
     "test:mobile": "node scripts/v4-mobile-browser.mjs",
-    "test:offline": "node scripts/v4-browser-verify.mjs --offline && node scripts/v4-pose-browser.mjs --offline && node scripts/v4-crouch-feedback-verify.mjs --offline && node scripts/v4-render-loop-browser.mjs --offline",
+    "test:offline": "node scripts/v4-render-loop-browser.mjs --offline && node scripts/v4-browser-verify.mjs --offline && node scripts/v4-pose-browser.mjs --offline && node scripts/v4-crouch-feedback-verify.mjs --offline",
     "test:pages": "node scripts/v4-browser-verify.mjs --pages",
     "prepare:pages": "node scripts/prepare-pages.mjs"
   },
