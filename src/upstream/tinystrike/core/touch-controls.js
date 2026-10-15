@@ -117,6 +117,8 @@ export default class TouchControls {
     this._modal = false;
     this._scoreOpen = false;
     this._crouched = false;
+    this._crouchPending = false;
+    this._crouchUiState = '';
     this._stickPointer = null;
     this._lookPointer = null;
     this._lookX = 0;
@@ -166,8 +168,11 @@ export default class TouchControls {
     if (!inGame) {
       this._setScore(false);
       this._setCrouch(false);
+      this._syncCrouchFeedback(player, true);
       return;
     }
+
+    this._syncCrouchFeedback(player, true);
 
     const canBuy = !dead && !!state.canBuy && (phase === 'freeze' || phase === 'live');
     const canUse = !dead && (phase === 'live' || phase === 'planted');
@@ -531,9 +536,27 @@ export default class TouchControls {
 
   _setCrouch(active) {
     this._crouched = !!active;
-    this._el.crouch?.classList.toggle('latched', this._crouched);
-    this._el.crouch?.setAttribute('aria-pressed', this._crouched ? 'true' : 'false');
+    this._crouchPending = true;
     this.game.input?.setVirtualAction?.('crouch', this._crouched);
+    this._syncCrouchFeedback(this.game.player);
+  }
+
+  _syncCrouchFeedback(player, consumePending = false) {
+    const showRequested = this._crouchPending && !consumePending;
+    if (consumePending) this._crouchPending = false;
+    const crouched = showRequested ? this._crouched : !!player?.crouching;
+    const blocked = !this._crouched && !!player?.crouchBlocked;
+    const label = blocked ? '上方受阻' : crouched ? '站起' : '蹲下';
+    const state = `${crouched ? 1 : 0}:${blocked ? 1 : 0}:${label}`;
+    if (state === this._crouchUiState) return;
+    this._crouchUiState = state;
+    const button = this._el.crouch;
+    if (!button) return;
+    button.classList.toggle('latched', crouched);
+    button.classList.toggle('blocked', blocked);
+    button.setAttribute('aria-pressed', crouched ? 'true' : 'false');
+    button.setAttribute('aria-label', blocked ? '上方受阻，无法站起' : label);
+    button.textContent = label;
   }
 
   _setScore(active) {
@@ -689,6 +712,7 @@ html.touch-gameplay,html.touch-gameplay body,html.touch-gameplay #app,html.touch
 .tc-fire::after { content:''; position:absolute; inset:8px; border:1px solid rgba(255,217,201,.28); border-radius:50%; }
 .tc-fire.pressed { transform:scale(.91); background:rgba(216,70,40,.9); }
 .tc-jump,.tc-crouch,.tc-use { position:absolute; z-index:5; width:58px; height:58px; border-radius:50%; font-size:10px; letter-spacing:.08em; }
+.tc-crouch.blocked { padding-inline:1px; font-size:8px; letter-spacing:0; white-space:nowrap; }
 .tc-jump { right:calc(var(--safe-r) + var(--tc-fire) + 28px); bottom:calc(var(--safe-b) + 16px); }
 .tc-crouch { right:calc(var(--safe-r) + var(--tc-fire) + 18px); bottom:calc(var(--safe-b) + 82px); }
 .tc-use { right:calc(var(--safe-r) + 20px); bottom:calc(var(--safe-b) + var(--tc-fire) + 28px); color:#eef6e2; border-color:rgba(224,188,93,.7); background:rgba(116,84,28,.67); }

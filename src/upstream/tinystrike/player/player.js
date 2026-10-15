@@ -84,6 +84,7 @@ export default class Player {
     this.networkId = null;
     this.onGround = false;
     this.crouching = false;
+    this.crouchBlocked = false;
     this.walking = false;
     this.moveSpeed2D = 0;
     this.eyeHeight = P.EYE_STAND;
@@ -249,6 +250,7 @@ export default class Player {
     this.velocity.set(0, 0, 0);
     this.onGround = false;
     this.crouching = false;
+    this.crouchBlocked = false;
     this.walking = false;
     this.moveSpeed2D = 0;
     this._deathBlend = 1;
@@ -273,6 +275,7 @@ export default class Player {
     this.velocity.set(0, 0, 0);
     this.onGround = false;
     this.crouching = false;
+    this.crouchBlocked = false;
     this.walking = false;
     this.moveSpeed2D = 0;
     this._heightCur = P.HEIGHT_STAND;
@@ -411,7 +414,8 @@ export default class Player {
     this.walking = (walkKey || analogWalk) && !wantCrouch;
 
     let targetHeight = wantCrouch ? P.HEIGHT_CROUCH : P.HEIGHT_STAND;
-    if (!wantCrouch && this._heightCur < P.HEIGHT_STAND - 0.02 && this._standUpBlocked()) {
+    this.crouchBlocked = !wantCrouch && this._heightCur < P.HEIGHT_STAND - 0.02 && this._standUpBlocked();
+    if (this.crouchBlocked) {
       targetHeight = P.HEIGHT_CROUCH; // low ceiling: stay crouched
     }
     this.crouching = targetHeight === P.HEIGHT_CROUCH;
@@ -648,6 +652,7 @@ export default class Player {
   // tilt and slump roll. Look input is flushed so respawn doesn't snap.
   _beginDeathTransition() {
     this.velocity.set(0, 0, 0);
+    this.crouchBlocked = false;
     this._deathBlend = 0;
     this._deathEyeStart = this.eyeHeight;
     this._deathStartedAt = monotonicSeconds();

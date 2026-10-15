@@ -3,22 +3,23 @@ import * as THREE from 'three';
 import Combat from '../src/upstream/tinystrike/combat/combat.js';
 import Weapons from '../src/upstream/tinystrike/weapons/weapons.js';
 import {CHARACTER,LOW_CHARACTER} from '../src/dimensions.js';
+import {poseAtHeight} from '../src/character-pose.js';
 import {createBeanActor,animateBeanActor,createBeanViewArms} from '../src/adapters/bean-actors.js';
 let checks=0;const check=(condition,label)=>{assert.ok(condition,label);checks++;};
 const emitted=[];const events={on(){},emit(type,payload){emitted.push({type,payload});}};
 const game={events,config:{PLAYER:{FOV:74,RADIUS:CHARACTER.radius,HEIGHT_STAND:CHARACTER.height,MAX_ARMOR:100},BOT:{RADIUS:CHARACTER.radius,HEIGHT:CHARACTER.height},ECON:{}},state:{phase:'freeze',canBuy:true,money:8000},camera:new THREE.PerspectiveCamera(),player:{alive:true,team:'ct',armor:100,hasKit:true,position:new THREE.Vector3()},bots:{all:[]},world:{raycast(){return null;}}};
 const combat=new Combat(game);
 for(const height of [CHARACTER.height,LOW_CHARACTER.height]){
- const ratio=height/CHARACTER.height;
- const head=combat._rayCharacter(0,CHARACTER.head.y*ratio,3,0,0,-1,10,0,0,0,CHARACTER.radius,height);
+ const pose=poseAtHeight(height);
+ const head=combat._rayCharacter(0,pose.height-.20,3,0,0,-1,10,0,0,0,CHARACTER.radius,height);
  check(head>0&&combat._capPart==='head','head zone follows stance');
- const body=combat._rayCharacter(0,CHARACTER.body.y*ratio,3,0,0,-1,10,0,0,0,CHARACTER.radius,height);
+ const body=combat._rayCharacter(0,pose.aimHeight,3,0,0,-1,10,0,0,0,CHARACTER.radius,height);
  check(body>0&&combat._capPart==='body','torso follows stance');
  check(combat._rayCharacter(0,height+.2,3,0,0,-1,10,0,0,0,CHARACTER.radius,height)<0,'above bean misses');
 }
 const friendly={alive:true,team:'ct',pos:new THREE.Vector3(0,0,1),radius:CHARACTER.radius,height:CHARACTER.height};
 const enemy={alive:true,team:'t',pos:new THREE.Vector3(0,0,-2),radius:CHARACTER.radius,height:CHARACTER.height};game.bots.all=[enemy,friendly];
-combat._testCharacters(new THREE.Vector3(0,CHARACTER.body.y,4),new THREE.Vector3(0,0,-1),20,game.player);
+combat._testCharacters(new THREE.Vector3(0,CHARACTER.aimHeight,4),new THREE.Vector3(0,0,-1),20,game.player);
 check(combat._hitChar===friendly,'friendly geometry blocks enemy ray');
 let resolved=false;combat._resolveBullet=()=>{resolved=true;};game.viewmodel={getMuzzleWorldPos(out){return out.set(0,1,-1);}};
 combat._sOrigin.set(0,1,0);combat._sDir.set(0,0,-1);game.world.raycast=()=>({distance:.1,point:new THREE.Vector3(0,1,-.1),normal:new THREE.Vector3(0,0,1),surface:'concrete'});
@@ -31,7 +32,7 @@ const funds=game.state.money;check(!weapons.buy('m4a1')&&game.state.money===fund
 weapons._state='winding';weapons._releaseQueued=true;weapons.cancelInputActivity();check(weapons._state==='idle'&&!weapons._releaseQueued,'cancel pin pull without releasing grenade');
 weapons.resetForRound({died:true});check(!weapons.slots[1]&&weapons.currentId==='usp','death clears main gun and selects native pistol');
 const actor={team:'ct',pos:new THREE.Vector3(),yaw:0,moveSpeed:0,height:CHARACTER.height,alive:true};actor.mesh=createBeanActor(actor);animateBeanActor(actor,1/120,null);actor.mesh.updateMatrixWorld(true);
-const bounds=new THREE.Box3().setFromObject(actor.mesh);check(Math.abs(bounds.max.y-CHARACTER.height)<.002,'bean overall standing height');
-actor.height=LOW_CHARACTER.height;animateBeanActor(actor,1/120,null);actor.mesh.updateMatrixWorld(true);check(Math.abs(new THREE.Box3().setFromObject(actor.mesh).max.y-LOW_CHARACTER.height)<.002,'bean crouch matches clearance height');
+const bounds=new THREE.Box3().setFromObject(actor.mesh,true);check(Math.abs(bounds.max.y-CHARACTER.height)<.002,'bean overall standing height');
+actor.height=LOW_CHARACTER.height;animateBeanActor(actor,1/120,null);actor.mesh.updateMatrixWorld(true);check(Math.abs(new THREE.Box3().setFromObject(actor.mesh,true).max.y-LOW_CHARACTER.height)<.002,'bean crouch matches clearance height');
 const fallback=createBeanViewArms('ct','m4a1',null),native=createBeanViewArms('ct','m4a1',{nodes:{gripR:{pos:[.2,.3,.4]},gripL:{pos:[-.2,.1,-.4]}}});check(fallback.children[0].geometry!==native.children[0].geometry,'native grip placement cannot reuse placeholder arm geometry');check(createBeanViewArms('t','m4a1',null).userData.team==='t','T view arms carry own uniform identity');
 console.log(JSON.stringify({ok:true,checks}));

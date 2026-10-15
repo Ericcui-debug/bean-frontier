@@ -20,6 +20,7 @@ import AudioSys from './audio/audio.js';
 import Effects from './effects/effects.js';
 import {DEFAULT_MAP_ID,normalizeMapId,MAP_CATALOG} from './maps/catalog.js';
 import {CHARACTER,LOW_CHARACTER} from '../../dimensions.js';
+import {poseForActor} from '../../character-pose.js';
 
 const search=new URLSearchParams(location.search),touch=shouldEnableTouchControls();
 const loading=globalThis.TINY_STRIKE_LOADING;
@@ -87,7 +88,7 @@ game.resume=()=>{
  game.events.emit('game:resume');
 };
 const resetTransient=()=>{
- game.clearInputs();game.paused=false;
+ game.clearInputs();game.paused=false;clearPoseDebug();
  game.combat?._onRoundStart?.();
  game.effects?._clearAll?.();
  game.events.emit('session:reset');
@@ -259,22 +260,44 @@ window.advanceTime=ms=>{
  render(ms/1000);lastTime=performance.now();
 };
 window.render_game_to_text=()=>{
- const p=game.player,w=game.weapons,s=game.state;
+ const p=game.player,w=game.weapons,s=game.state,pose=poseForActor(p);
  const vec=v=>v?{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3)}:null;
- return JSON.stringify({version:'4.0.0',coordinateSystem:'meters; +X east, +Z south, +Y up',
+ return JSON.stringify({version:'4.0.1',coordinateSystem:'meters; +X east, +Z south, +Y up',
  mode:game.loading?'loading':game.paused?'paused':s.phase==='menu'?'lobby':'playing',phase:s.phase,
  map:{id:game.selectedMapId,name:MAP_CATALOG.find(m=>m.id===game.selectedMapId)?.name,loaded:!!game.world._loaded,bounds:game.world.bounds,available:MAP_CATALOG.map(m=>m.id)},
  rules:CONFIG.MATCH,round:s.round,scores:s.scores,timer:+s.timer.toFixed(3),money:s.money,
  character:{radius:CHARACTER.radius,height:CHARACTER.height,eye:CHARACTER.eye},
- player:{team:p.team,alive:p.alive,health:p.health,armor:p.armor,kit:p.hasKit,position:vec(p.position),yaw:p.yaw,pitch:p.pitch,crouching:p.crouching,eye:p.crouching?LOW_CHARACTER.eye:CHARACTER.eye},
+ player:{team:p.team,alive:p.alive,health:p.health,armor:p.armor,kit:p.hasKit,position:vec(p.position),yaw:p.yaw,pitch:p.pitch,crouching:p.crouching,eye:+p.eyeHeight.toFixed(4),height:+pose.height.toFixed(4),stanceBlend:+pose.crouch.toFixed(4),crouchBlocked:!!p.crouchBlocked},
  weapon:{id:w.currentId,slot:w.current()?.slot,slots:w.slots,ammo:w.currentAmmo(),scope:w.scopeLevel,state:w._state},
  bomb:{planted:s.bomb.planted,site:s.bomb.site,timer:s.phase==='planted'?s.timer:0,carrier:s.bomb.carrierId,dropped:game.bots._bombDropped,droppedPosition:game.bots._bombDropped?vec(game.bots._droppedBombPos):null,position:vec(s.bomb.pos),plantProgress:s.bomb.plantProgress||0,defuseProgress:s.bomb.defuseProgress||0},
  teamAlive:{ct:game.bots.aliveOf('ct')+(p.alive&&p.team==='ct'?1:0),t:game.bots.aliveOf('t')+(p.alive&&p.team==='t'?1:0)},
  teammates:game.bots.all.filter(b=>b.team===p.team).map(b=>({name:b.name,alive:b.alive,position:vec(b.pos),weapon:b.weaponId})),
  quality:{tier:game.gfxQuality,post:!!game.post,antialias:renderer.getContext().getContextAttributes().antialias,pixelRatio:renderer.getPixelRatio(),targetFps:touch?(game.settings.targetFps||60):60},perf:game.perf});
 };
+function clearPoseDebug(){
+ for(const overlay of game._poseDebugMeshes||[]){overlay.removeFromParent();overlay.geometry.dispose();overlay.material.dispose();}
+ game._poseDebugMeshes=[];
+}
 if(game.debug){
  window.__game=game;
  game.test={manual:on=>{manual=on;lastTime=performance.now();},setSeed:seed=>{let a=seed>>>0;Math.random=()=>{a+=0x6d2b79f5;let t=Math.imul(a^(a>>>15),1|a);t^=t+Math.imul(t^(t>>>7),61|t);return((t^(t>>>14))>>>0)/4294967296;};}};
+ game.test.setPose=(index,crouch,pitch=0)=>{
+  const c=THREE.MathUtils.clamp(Number(crouch)||0,0,1),actor=index==='player'?game.player:game.bots.all[index];if(!actor)return;
+  const height=CHARACTER.height+(LOW_CHARACTER.height-CHARACTER.height)*c;
+  if(actor===game.player){actor._heightCur=height;actor.eyeHeight=CHARACTER.eye+(LOW_CHARACTER.eye-CHARACTER.eye)*c;}
+  else{actor.height=height;actor.aimPitch=THREE.MathUtils.clamp(pitch,-1.45,1.45);actor.fireAnim=0;actor.bean.retract=0;game.bots._animateBot(actor,0);}
+  actor.crouching=c>.5;
+ };
+ game.test.showHitGeometry=enabled=>{
+  clearPoseDebug();if(!enabled)return;
+  for(const actor of game.bots.all)for(const part of actor.bean?.hitMeshes||[]){
+   const geometry=part.geometry.clone(),zones=geometry.attributes.hitZone,colors=new Float32Array(zones.count*3);
+   for(let i=0;i<zones.count;i++){const color=new THREE.Color(zones.getX(i)===1?0xffbb55:0x55e9ff);colors.set([color.r,color.g,color.b],i*3);}
+   geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+   const overlay=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({vertexColors:true,wireframe:true,transparent:true,opacity:.5,depthTest:false}));
+   overlay.morphTargetInfluences=part.morphTargetInfluences;part.add(overlay);game._poseDebugMeshes.push(overlay);
+  }
+ };
+
 }
 loading?.finish?.();

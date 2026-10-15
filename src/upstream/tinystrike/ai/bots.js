@@ -26,6 +26,7 @@ import {
   balancedRouteIndices,
   selectDiversePointIndex,
 } from './tactics.js';
+import { poseForActor } from '../../../character-pose.js';
 
 // The operatives read the same screen-space AO buffer the world's materials do
 // (see _surfaceOperativeMaterial). Module scope, matching materials/shader.js:
@@ -217,6 +218,8 @@ const T_HOLD_MIN = 3.0;
 const T_HOLD_MAX = 5.5;
 const INVESTIGATE_HOLD_MIN = 2.0;
 const INVESTIGATE_HOLD_MAX = 3.8;
+const BOT_POSE_STEP = 1 / 120;
+const BOT_POSE_RATE = 12;
 
 // ---------------------------------------------------------------------------
 // Scratch objects (module-level, reused every frame — no hot-loop allocation)
@@ -233,6 +236,7 @@ const _eyeB = new THREE.Vector3();
 const _moveStart = new THREE.Vector3();
 const _navLeft = new THREE.Vector3();
 const _navRight = new THREE.Vector3();
+const _poseScratch = {};
 
 function rand(a, b) { return a + Math.random() * (b - a); }
 function randInt(a, b) { return Math.floor(rand(a, b + 0.999)); }
@@ -864,6 +868,7 @@ export default class Bots {
       targetVisible: false,
       lastSeenTime: -99,
       lastSeenPos: new THREE.Vector3(),
+      lastSeenAimHeight: 0,
       trackTime: 0,
       reactionTimer: 0,
       heardTime: -99,
@@ -884,6 +889,7 @@ export default class Bots {
       strafeTimer: 0,
       wantCrouch: false,
       crouchLerp: 0,
+      poseHeightAccumulator: 0,
       sneak: false,
       formationSide: index % 2 === 0 ? -1 : 1,
 
@@ -1603,11 +1609,11 @@ export default class Bots {
   _attachHeldWeapon(bot, family) {
     const anchor=bot.bean?.gunAnchor;
     if (!anchor || !this.game.materials || !hasWeaponModel(bot.weaponId)) return false;
-    if (bot.heldWeaponId===bot.weaponId && bot.heldWeapon) return true;
+    if (bot.heldWeaponId===bot.weaponId && bot.heldWeapon) {bot.heldWeapon.visible=bot.alive!==false;return true;}
     bot.heldWeapon?.removeFromParent();
     const weapon=weaponInstance(bot.weaponId,this.game.materials,{viewmodel:false});
     if (!weapon) return false;
-    weapon.name=`held:${bot.weaponId}`;anchor.add(weapon);
+    weapon.name=`held:${bot.weaponId}`;weapon.visible=bot.alive!==false;anchor.add(weapon);
     bot.heldWeapon=weapon;bot.heldWeaponId=bot.weaponId;return true;
   }
 
@@ -1652,6 +1658,8 @@ export default class Bots {
     bot.targetHuman = null;
     bot.targetVisible = false;
     bot.lastSeenTime = -99;
+    bot.lastSeenAimHeight = 0;
+    bot.poseHeightAccumulator = 0;
     bot.trackTime = 0;
     bot.reactionTimer = 0;
     bot.heardTime = -99;
@@ -1933,13 +1941,25 @@ export default class Bots {
   // -------------------------------------------------------------------------
 
   _botEye(bot, out) {
-    const eye = bot.crouching ? this._cfg.CROUCH_EYE : this._cfg.EYE;
-    return out.set(bot.pos.x, bot.pos.y + eye, bot.pos.z);
+    const pose = poseForActor(bot, _poseScratch);
+    return out.set(bot.pos.x, bot.pos.y + pose.eye, bot.pos.z);
   }
 
   _moveBot(bot, dt) {
     const world = this.game.world;
     const blind = bot.blindUntil > this.time;
+
+    // Stance changes follow a fixed 120 Hz height curve. Collision, aim and
+    // rendering all consume bot.height, so no system sees an instant capsule
+    // swap while the bean is still blending between poses.
+    bot.poseHeightAccumulator = Math.min(0.25,
+      (bot.poseHeightAccumulator || 0) + Math.max(0, dt));
+    const targetHeight = bot.crouching ? this._cfg.CROUCH_HEIGHT : this._cfg.HEIGHT;
+    const heightBlend = 1 - Math.exp(-BOT_POSE_RATE * BOT_POSE_STEP);
+    while (bot.poseHeightAccumulator + 1e-9 >= BOT_POSE_STEP) {
+      bot.height += (targetHeight - bot.height) * heightBlend;
+      bot.poseHeightAccumulator -= BOT_POSE_STEP;
+    }
 
     _delta.set(0, 0, 0);
     let wantSpeed = 0;
@@ -2089,8 +2109,7 @@ export default class Bots {
 
     if (world && typeof world.resolveMovement === 'function') {
       _v4.set(stepX, stepY, stepZ);
-      const height = bot.crouching ? this._cfg.CROUCH_HEIGHT : this._cfg.HEIGHT;
-      const res = world.resolveMovement(bot.pos, _v4, bot.radius, height);
+      const res = world.resolveMovement(bot.pos, _v4, bot.radius, bot.height);
       if (res && res.pos) bot.pos.copy(res.pos);
       bot.onGround = !!(res && res.onGround);
       if (bot.onGround) bot.velY = Math.max(bot.velY, 0);
@@ -2109,7 +2128,6 @@ export default class Bots {
     // Animation, footsteps and weapon accuracy must describe what collision
     // actually allowed, not the velocity the brain requested.
     bot.moveSpeed = actualTravel / Math.max(dt, 1e-5);
-    bot.height = bot.crouching ? this._cfg.CROUCH_HEIGHT : this._cfg.HEIGHT;
     this._updateNavigationProgress(bot, dt, wantSpeed, actualTravel);
 
     // Footsteps while moving fast on the ground.
@@ -2206,7 +2224,7 @@ export default class Bots {
       _navRight.copy(_navLeft).multiplyScalar(-1);
 
       const world = this.game.world;
-      const height = bot.crouching ? this._cfg.CROUCH_HEIGHT : this._cfg.HEIGHT;
+      const height = bot.height;
       const clearance = (dir) => {
         if (!world || typeof world.resolveMovement !== 'function') return 1;
         _v4.copy(dir).multiplyScalar(0.85);
@@ -2314,7 +2332,11 @@ export default class Bots {
       : this._targetPos(bot, _v3);
     if (!tp) return;
     this._botEye(bot, _eyeA);
-    const aimY = tp.y + this._cfg.EYE * .8; // bean chest height
+    const targetActor = bot.targetIsPlayer ? bot.targetHuman : bot.targetBot;
+    const aimY = bot.targetVisible
+      ? tp.y + poseForActor(targetActor, _poseScratch).aimHeight
+      : bot.lastSeenAimHeight;
+    if (bot.targetVisible) bot.lastSeenAimHeight = aimY;
     _v1.set(tp.x - _eyeA.x, aimY - _eyeA.y, tp.z - _eyeA.z);
     const dist = _v1.length();
     if (dist < 0.05) return;
@@ -2443,7 +2465,11 @@ export default class Bots {
       );
       if (bot.targetVisible) {
         bot.lastSeenTime = this.time;
-        this._targetPos(bot, bot.lastSeenPos);
+        const targetPos = this._targetPos(bot, bot.lastSeenPos);
+        if (targetPos) {
+          const targetActor = bot.targetIsPlayer ? bot.targetHuman : bot.targetBot;
+          bot.lastSeenAimHeight = targetPos.y + poseForActor(targetActor, _poseScratch).aimHeight;
+        }
       } else if (this.time - bot.lastSeenTime > LOSE_TARGET_TIME) {
         // Lost them — push toward their last known spot.
         bot.target = null;

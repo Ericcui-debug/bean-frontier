@@ -3235,7 +3235,7 @@ export default class HUD {
       '<div class="mn-scan"></div>' +
       '<div class="mn-top">' +
       '<div class="mn-op">单人离线 · 5v5 爆破</div>' +
-      '<div class="mn-title" data-title="豆豆火力岛 4.0">豆豆火力岛 4.0</div>' +
+      '<div class="mn-title" data-title="豆豆火力岛">豆豆火力岛</div>' +
       '</div>' +
       '<section class="mn-map-picker" id="hud-map-picker" aria-label="Choose a battleground">' +
       '<div class="mn-section-head">选择地图</div>' +

@@ -19,7 +19,7 @@
 // ---------------------------------------------------------------------------
 
 import * as THREE from 'three';
-import {CHARACTER} from '../../../dimensions.js';
+import {raycastBeanBody} from '../../../adapters/bean-actors.js';
 import { resolveHumanPlayerName } from '../player/profile.js';
 import { WEAPONS } from '../weapons/data.js';
 
@@ -630,7 +630,7 @@ export default class Combat {
       if (radius > 0) {
         const t = this._rayCharacter(
           o.x, o.y, o.z, d.x, d.y, d.z, maxDist,
-          fx, fy, fz, radius, height
+          fx, fy, fz, radius, height, pl
         );
         if (t >= 0) {
           bestT = t;
@@ -660,7 +660,7 @@ export default class Combat {
         // Bean render, clearance and hit zones share the same stance height.
         const t = this._rayCharacter(
           o.x, o.y, o.z, d.x, d.y, d.z, maxDist,
-          b.pos.x, b.pos.y, b.pos.z, radius, height
+          b.pos.x, b.pos.y, b.pos.z, radius, height, b
         );
         if (t >= 0 && (bestT < 0 || t < bestT)) {
           bestT = t;
@@ -686,7 +686,7 @@ export default class Combat {
         const height = r.height != null ? r.height : defHeight;
         const t = this._rayCharacter(
           o.x, o.y, o.z, d.x, d.y, d.z, maxDist,
-          r.position.x, r.position.y, r.position.z, radius, height
+          r.position.x, r.position.y, r.position.z, radius, height, r
         );
         if (t >= 0 && (bestT < 0 || t < bestT)) {
           bestT = t;
@@ -704,29 +704,15 @@ export default class Combat {
   }
 
   /**
-   * Ray vs the compound character hitbox. The body keeps the movement radius
-   * for forgiving torso/limb contact, but ends at the neck; a much smaller
-   * sphere owns headshot classification. Returns the first physical contact
+   * Ray vs the current rendered bean shell, face and feet after a conservative
+   * broad phase. Face/triangle zones own classification, so there are no
+   * holes between independent head/body volumes. Returns first contact
    * and stores its part/height in the scratch registers.
    */
-  _rayCharacter(ox, oy, oz, dx, dy, dz, maxDist, fx, fy, fz, radius, height) {
-    const ratio=height/CHARACTER.height;
-    let best=-1,part='body';
-    // Vertically squash the same three bean zones used by the visual crouch.
-    // Transforming both ray origin and direction preserves world-distance t.
-    for (let i=0;i<CHARACTER.hitVolumes.length;i++) {
-      const volume=CHARACTER.hitVolumes[i],rx=volume.r,ry=volume.r*ratio;
-      const x=(ox-fx)/rx,y=(oy-fy-volume.y*ratio)/ry,z=(oz-fz)/rx;
-      const vx=dx/rx,vy=dy/ry,vz=dz/rx;
-      const a=vx*vx+vy*vy+vz*vz,b=2*(x*vx+y*vy+z*vz),c=x*x+y*y+z*z-1;
-      const discriminant=b*b-4*a*c;
-      if(discriminant<0||a<1e-12)continue;
-      const root=Math.sqrt(discriminant);
-      let t=(-b-root)/(2*a);if(t<0)t=(-b+root)/(2*a);
-      if(t<0||t>maxDist||(best>=0&&t>=best))continue;
-      best=t;part=i===0?'head':i===2?'legs':'body';
-    }
-    this._capPart=part;this._capY=best>=0?oy+dy*best:fy;return best;
+  _rayCharacter(ox, oy, oz, dx, dy, dz, maxDist, fx, fy, fz, radius, height, actor=null) {
+    const hit=raycastBeanBody(ox,oy,oz,dx,dy,dz,maxDist,fx,fy,fz,height,actor,this._beanHit||(this._beanHit={}));
+    this._capPart=hit.part||'body';this._capY=hit.distance>=0?hit.y:fy;
+    return hit.distance;
   }
 
   /**
