@@ -13,7 +13,7 @@ M2 MacBook Air8GB/Chrome在移动、转向和交火时掉帧。原桌面固定�
 
 ## 对照与验证
 
-专用9333 Chrome/Apple Metal，Mac14,2/M2/8GB。1440×900 CSS/DPR2、同种子静态AI、真实键盘侧移/连射/换弹7秒：旧版26.84FPS，新版60.10FPS，帧时间p95为50→16.8ms，两边移动约10.27米。静态且不死亡AI让两边保留相同负载；不是所有地图、实战胜率或长时间温升保证。实体iPhone仍未实测。
+专用9333 Chrome/Apple Metal，Mac14,2/M2/8GB。1440×900 CSS/DPR2、同种子静态AI、真实键盘侧移/连射/换弹7秒：最终复测旧版28.22FPS，新版60.09FPS，帧时间p95为50→16.7ms，两边移动约10.27米。静态且不死亡AI让两边保留相同负载；不是所有地图、实战胜率或长时间温升保证。实体iPhone仍未实测。
 
 纯逻辑99组，源码浏览器134组，新增实时渲染8组，离线60组及补充手机16组；发布仍须云端完整矩阵通过，再核对公网与测试文件逐字节一致。
 
@@ -22,3 +22,9 @@ M2 MacBook Air8GB/Chrome在移动、转向和交火时掉帧。原桌面固定�
 回退：Bean-Frontier-pre-perf-2026-10-15.html和Bean-Frontier-source-pre-perf-2026-10-15.tar.gz；此前姿态修复及更早回退包均保留。
 
 霓虹铸厂另做24秒正常AI负载测试；允许电脑版最低0.9倍并记住超载上限后，自动调整结束的样本约58–60FPS，初次调节阶段仍有波动。切换地图重新估算预算。手机下限仍为1倍。
+
+## 发布完成
+
+最终源码`a248719bfb59d1e3aed4e57283db0fb06abc5c0f`；[云端完整验证与部署](https://github.com/Ericcui-debug/bean-frontier/actions/runs/38729357184)成功。[原网址](https://ericcui-debug.github.io/bean-frontier/)与测试HTML逐字节一致，公网追加34组全部通过，异常0。
+
+最终源码包：`Bean-Frontier-source-perf-final-2026-10-15.tar.gz`，SHA-256 `7da699a4b34db99d620a9c899fa071e15b11232c049042cd85114fb17b940bfb`。旧包完整保留；最终机器记录为`output/desktop-perf/release-verification.json`。

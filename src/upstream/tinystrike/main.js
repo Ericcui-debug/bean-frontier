@@ -22,6 +22,7 @@ import {DEFAULT_MAP_ID,normalizeMapId,MAP_CATALOG} from './maps/catalog.js';
 import {CHARACTER,LOW_CHARACTER} from '../../dimensions.js';
 import {poseForActor} from '../../character-pose.js';
 import {RenderBudget,RenderPacer} from '../../render-budget.js';
+import {installTouchGestureGuard} from '../../touch-gesture-guard.js';
 
 const search=new URLSearchParams(location.search),touch=shouldEnableTouchControls();
 const loading=globalThis.TINY_STRIKE_LOADING;
@@ -150,6 +151,11 @@ if(loadingPanel){
 }
 game.hud=new HUD(game);
 game.touchControls=new TouchControls(game);
+installTouchGestureGuard({enabled:touch,
+ isPlaying:()=>!game.paused&&!game.loading&&game.state.phase!=='menu',
+ isControlling:()=>!game.paused&&!game.loading&&!game.state.buyOpen&&
+  !game.hud._settingsOpen&&!game.hud._profileOpen&&!game.hud._leaderboardOpen&&!!game.touchControls._active,
+ interrupt:reason=>game.pause(reason)});
 
 function resize(){
  const root=document.documentElement,visual=window.visualViewport;
@@ -272,7 +278,7 @@ window.advanceTime=ms=>{
 window.render_game_to_text=()=>{
  const p=game.player,w=game.weapons,s=game.state,pose=poseForActor(p);
  const vec=v=>v?{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3)}:null;
- return JSON.stringify({version:'4.0.2',coordinateSystem:'meters; +X east, +Z south, +Y up',
+ return JSON.stringify({version:'4.0.3',coordinateSystem:'meters; +X east, +Z south, +Y up',
  mode:game.loading?'loading':game.paused?'paused':s.phase==='menu'?'lobby':'playing',phase:s.phase,
  map:{id:game.selectedMapId,name:MAP_CATALOG.find(m=>m.id===game.selectedMapId)?.name,loaded:!!game.world._loaded,bounds:game.world.bounds,available:MAP_CATALOG.map(m=>m.id)},
  rules:CONFIG.MATCH,round:s.round,scores:s.scores,timer:+s.timer.toFixed(3),money:s.money,

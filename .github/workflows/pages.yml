@@ -50,7 +50,7 @@ jobs:
         run: |
           case "${{ matrix.suite }}" in
             desktop) node scripts/v4-render-loop-browser.mjs && node scripts/v4-browser-verify.mjs && node scripts/v4-pose-browser.mjs ;;
-            mobile) node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-map-browser.mjs && node scripts/v4-arsenal-browser.mjs && node scripts/v4-crouch-feedback-verify.mjs ;;
+            mobile) node scripts/v4-touch-guard-browser.mjs && node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-map-browser.mjs && node scripts/v4-arsenal-browser.mjs && node scripts/v4-crouch-feedback-verify.mjs ;;
             offline) npm run test:offline ;;
           esac
       - name: Upload verification evidence
