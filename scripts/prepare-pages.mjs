@@ -8,11 +8,11 @@ fs.mkdirSync(path.join(release,'.github/workflows'),{recursive:true});
 fs.cpSync(path.join(project,'site'),path.join(release,'site'),{recursive:true});
 for(const name of fs.readdirSync(path.join(project,'licenses')))fs.copyFileSync(path.join(project,'licenses',name),path.join(release,'site/licenses',name));
 fs.writeFileSync(path.join(release,'site/.nojekyll'),'');
-fs.writeFileSync(path.join(release,'.gitignore'),'.DS_Store\nnode_modules/\ndist/\noutput/\n.pages-release/\nBean-Frontier.html\n');
+fs.writeFileSync(path.join(release,'.gitignore'),'.DS_Store\nnode_modules/\ndist/\noutput/\n.pages-release/\nBean-Frontier.html\nBean-Frontier-Harbor.html\ndist-harbor/\n');
 // Ship reviewable source beside the static site, never dependency caches or QA output.
 fs.rmSync(path.join(release,'src'),{recursive:true,force:true});
 for(const name of ['src','releases','assets-tinystrike'])fs.cpSync(path.join(project,name),path.join(release,name),{recursive:true});
-for(const name of ['index.html','package.json','package-lock.json','vite.config.js','ASSETS.md','MAPS.md','MAP-ROUTE-TIMING.md','VERIFICATION.md','OPTIMIZATION.md'])fs.copyFileSync(path.join(project,name),path.join(release,name));
+for(const name of ['index.html','package.json','package-lock.json','vite.config.js','vite.harbor.config.js','HARBOR-PREVIEW.md','ASSETS.md','MAPS.md','MAP-ROUTE-TIMING.md','VERIFICATION.md','OPTIMIZATION.md'])fs.copyFileSync(path.join(project,name),path.join(release,name));
 fs.mkdirSync(path.join(release,'scripts'),{recursive:true});
 fs.rmSync(path.join(release,'scripts'),{recursive:true,force:true});
 fs.mkdirSync(path.join(release,'scripts'),{recursive:true});

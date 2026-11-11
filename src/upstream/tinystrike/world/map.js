@@ -164,6 +164,7 @@ export default class World {
     this.game.scene.add(this.environment);
     this.game.scene.add(this.solids);
     this.solids.updateMatrixWorld(true);
+    this.game.harborVisual?.load(this);
     this.environment.updateMatrixWorld(true);
     this.bounds = this._measureBounds();
     } catch (error) {
@@ -185,6 +186,7 @@ export default class World {
   }
 
   _disposeLoadedMap() {
+    this.game.harborVisual?.unload();
     if (!this._loaded) return;
     const scene = this.game.scene;
     if (this.solids) scene.remove(this.solids);

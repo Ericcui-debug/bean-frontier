@@ -21,6 +21,8 @@ import Effects from './effects/effects.js';
 import {DEFAULT_MAP_ID,normalizeMapId,MAP_CATALOG} from './maps/catalog.js';
 import {CHARACTER,LOW_CHARACTER} from '../../dimensions.js';
 import {poseForActor} from '../../character-pose.js';
+import {HARBOR_PREVIEW} from '../../harbor/flag.js';
+import {HarborVisual} from '../../harbor/visual.js';
 import {RenderBudget,RenderPacer} from '../../render-budget.js';
 import {installTouchGestureGuard} from '../../touch-gesture-guard.js';
 
@@ -151,6 +153,7 @@ if(loadingPanel){
 }
 game.hud=new HUD(game);
 game.touchControls=new TouchControls(game);
+if(HARBOR_PREVIEW)game.harborVisual=new HarborVisual(game);
 installTouchGestureGuard({enabled:touch,
  isPlaying:()=>!game.paused&&!game.loading&&game.state.phase!=='menu',
  isControlling:()=>!game.paused&&!game.loading&&!game.state.buyOpen&&
@@ -229,7 +232,7 @@ function fixedStep(dt){
 }
 function render(dt){
  if(game.contextLost){game.hud.update(0);game.touchControls.update(0);return;}
- game.world.update?.(game.paused?0:dt);game.materials.update?.(game.paused?0:dt);
+ game.world.update?.(game.paused?0:dt);game.harborVisual?.beforeFrame();game.materials.update?.(game.paused?0:dt);
  game.touchControls.update(dt);game.hud.update(dt);
  game.audio.update(game.paused?0:dt);
  const audio=game.audio,settings=game.settings;
@@ -288,7 +291,7 @@ window.render_game_to_text=()=>{
  bomb:{planted:s.bomb.planted,site:s.bomb.site,timer:s.phase==='planted'?s.timer:0,carrier:s.bomb.carrierId,dropped:game.bots._bombDropped,droppedPosition:game.bots._bombDropped?vec(game.bots._droppedBombPos):null,position:vec(s.bomb.pos),plantProgress:s.bomb.plantProgress||0,defuseProgress:s.bomb.defuseProgress||0},
  teamAlive:{ct:game.bots.aliveOf('ct')+(p.alive&&p.team==='ct'?1:0),t:game.bots.aliveOf('t')+(p.alive&&p.team==='t'?1:0)},
  teammates:game.bots.all.filter(b=>b.team===p.team).map(b=>({name:b.name,alive:b.alive,position:vec(b.pos),weapon:b.weaponId})),
- quality:{tier:game.gfxQuality,post:!!game.post,antialias:renderer.getContext().getContextAttributes().antialias,pixelRatio:renderer.getPixelRatio(),targetFps:touch?(game.settings.targetFps||60):60},perf:game.perf});
+ visual:game.harborVisual?.snapshot?.(),quality:{tier:game.gfxQuality,post:!!game.post,antialias:renderer.getContext().getContextAttributes().antialias,pixelRatio:renderer.getPixelRatio(),targetFps:touch?(game.settings.targetFps||60):60},perf:game.perf});
 };
 function clearPoseDebug(){
  for(const overlay of game._poseDebugMeshes||[]){overlay.removeFromParent();overlay.geometry.dispose();overlay.material.dispose();}

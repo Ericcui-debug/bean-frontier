@@ -14,7 +14,8 @@
     "test:mobile": "node scripts/v4-mobile-browser.mjs",
     "test:offline": "node scripts/v4-render-loop-browser.mjs --offline && node scripts/v4-browser-verify.mjs --offline && node scripts/v4-pose-browser.mjs --offline && node scripts/v4-crouch-feedback-verify.mjs --offline && node scripts/v4-touch-guard-browser.mjs --offline",
     "test:pages": "node scripts/v4-browser-verify.mjs --pages",
-    "prepare:pages": "node scripts/prepare-pages.mjs"
+    "prepare:pages": "node scripts/prepare-pages.mjs",
+    "build:harbor": "vite build --config vite.harbor.config.js && node scripts/v4-harbor-build.mjs"
   },
   "dependencies": {
     "three": "0.166.1",

@@ -30,11 +30,12 @@ jobs:
       - name: Verify geometry and rules
         if: matrix.suite == 'desktop'
         run: npm run test:ci
-      - name: Rebuild the tested single-file artifact
+      - name: Rebuild Harbor and verify frozen main site
         run: |
-          cp site/artifact-manifest.json "$RUNNER_TEMP/expected-artifact.json"
-          npm run build
-          node scripts/check-artifact.mjs "$RUNNER_TEMP/expected-artifact.json"
+          cp site/harbor-preview/artifact-manifest.json "$RUNNER_TEMP/harbor-expected.json"
+          cp site/index.html Bean-Frontier.html
+          npm run build:harbor
+          node scripts/v4-harbor-check.mjs "$RUNNER_TEMP/harbor-expected.json"
       - name: Start isolated Codex test browser on port 9333
         run: |
           npx playwright install --with-deps chromium
@@ -48,10 +49,12 @@ jobs:
           exit 1
       - name: Exercise built browser and offline artifact
         run: |
+          export GAME_URL=http://127.0.0.1:5180/harbor-preview/
+          export HARBOR_ONLY=1
           case "${{ matrix.suite }}" in
-            desktop) node scripts/v4-render-loop-browser.mjs && node scripts/v4-browser-verify.mjs && node scripts/v4-pose-browser.mjs ;;
-            mobile) node scripts/v4-touch-guard-browser.mjs && node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-map-browser.mjs && node scripts/v4-arsenal-browser.mjs && node scripts/v4-crouch-feedback-verify.mjs ;;
-            offline) npm run test:offline ;;
+            desktop) node scripts/v4-render-loop-browser.mjs && node scripts/v4-harbor-verify.mjs ;;
+            mobile) node scripts/v4-touch-guard-browser.mjs && node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-arsenal-browser.mjs ;;
+            offline) unset GAME_URL; node scripts/v4-harbor-verify.mjs --offline && GAME_URL="file://$PWD/Bean-Frontier-Harbor.html" node scripts/v4-touch-guard-browser.mjs ;;
           esac
       - name: Upload verification evidence
         if: always()

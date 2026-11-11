@@ -1,5 +1,7 @@
 # 豆豆火力岛
 
+新增独立[Harbor雨后港口试点](https://ericcui-debug.github.io/bean-frontier/harbor-preview/)，原主站保持当前五图版本。试点的构建、操作与验证边界见[港口试点说明](HARBOR-PREVIEW.md)。
+
 [在线游玩](https://ericcui-debug.github.io/bean-frontier/) · [离线版](site/index.html)
 
 Tiny Strike 的完整五图画面与单人爆破玩法，搭配豆豆角色和手机双指操作。开局默认 CT；也可选择 T。每方总计五人，玩家阵亡后观战存活队友，下一回合复活。没有联网、账号、排行榜或长期成长。

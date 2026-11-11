@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {HARBOR_PREVIEW} from '../../../../harbor/flag.js';
 import { Pass, LUMA_GLSL } from './pass.js';
 
 /**
@@ -79,6 +80,8 @@ void main() {
   // three folds the /0.6 into its exposure multiply; the exposure is already
   // applied above, so it appears on its own here. Same curve, same numbers.
   vec3 ldr = linearToSRGB( ACESFilmic( hdr / 0.6 ) );
+
+  ${HARBOR_PREVIEW ? 'float hgL=dot(ldr,vec3(.2126,.7152,.0722));ldr*=mix(vec3(.94,1.005,1.035),vec3(1.035,1.01,.97),smoothstep(.08,.8,hgL));' : ''}
 
   // The canvas is 8-bit and the sky is a wide, near-flat gradient — the exact
   // signal 8 bits cannot hold without visible contouring. Half a code value of
