@@ -4,7 +4,7 @@ import {Reflector} from 'three/addons/objects/Reflector.js';
 export const HARBOR_GRADE=`float hgL=dot(gl_FragColor.rgb,vec3(.2126,.7152,.0722));gl_FragColor.rgb*=mix(vec3(.94,1.005,1.035),vec3(1.035,1.01,.97),smoothstep(.08,.8,hgL));`;
 export class HarborVisual {
  constructor(game){this.game=game;this.profile='harbor-after-rain';this.root=null;this.reflector=null;this.fixedExposure=null;this._materials=new WeakSet();this._scratch=new THREE.Vector2();this.reflectionsRequested=!(game.debug&&new URLSearchParams(location.search).get('reflection')==='0');
-  if(game.touchDevice)THREE.ShaderChunk.colorspace_fragment+='\n'+HARBOR_GRADE;
+  if(!game.post)THREE.ShaderChunk.colorspace_fragment+='\n'+HARBOR_GRADE;
   const css=document.createElement('style');css.textContent='#hud-crosshair{filter:drop-shadow(0 1px 1px #07131d) drop-shadow(0 0 1px #07131d)}#hud .hud-panel{border-color:rgba(217,234,240,.32)}';document.head.append(css);
  }
  load(world){this.unload();this.fixedExposure=world.sky?.autoExposure||1.05;this.root=new THREE.Group();this.root.name='harbor-visual-only';this.root.userData.noCollision=true;
