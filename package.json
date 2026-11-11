@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 5180 --strictPort",
     "build": "vite build && node scripts/standalone.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 5181",
-    "test": "node --test scripts/v4-world-verify.mjs scripts/v4-rules-verify.mjs scripts/v4-pose-verify.mjs scripts/v4-render-budget-verify.mjs scripts/v4-touch-guard-verify.mjs && node scripts/v4-combat-verify.mjs && node scripts/v4-mobile-layout-verify.mjs && node scripts/v4-ai-pose-verify.mjs",
+    "test": "node --test scripts/v4-world-verify.mjs scripts/v4-rules-verify.mjs scripts/v4-pose-verify.mjs scripts/v4-render-budget-verify.mjs scripts/v4-touch-guard-verify.mjs scripts/v4-crate-verify.mjs && node scripts/v4-combat-verify.mjs && node scripts/v4-mobile-layout-verify.mjs && node scripts/v4-ai-pose-verify.mjs",
     "test:ci": "npm test",
     "bake:check": "node --test scripts/v4-world-verify.mjs",
     "test:browser": "node scripts/v4-browser-verify.mjs && node scripts/v4-mobile-browser.mjs && node scripts/v4-final-audit.mjs && node scripts/v4-map-browser.mjs && node scripts/v4-arsenal-browser.mjs && node scripts/v4-pose-browser.mjs && node scripts/v4-crouch-feedback-verify.mjs && node scripts/v4-render-loop-browser.mjs && node scripts/v4-touch-guard-browser.mjs",

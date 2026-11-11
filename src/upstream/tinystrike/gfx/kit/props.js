@@ -245,18 +245,24 @@ function crate(rng, s = 0.62, slats = true) {
   p.box(s, s * 0.85, s * 0.92, 0, 0, 0, { bevel: 0.012, grime: 0.12 });
   if (slats) {
     // plank slats standing proud of the body, with one board sprung loose
+    // Slats stop inside the posts, including the loose-board tilt. Their old
+    // faces nearly coincided on the largest crate (only0.6mm apart).
     const n = 3;
     for (let i = 0; i < n; i++) {
       const y = -s * 0.32 + (i / (n - 1)) * s * 0.64;
       const loose = rng.float() < 0.18;
-      p.box(s * 1.01, s * 0.14, 0.016, 0, y, s * 0.46, {
+      const tilt = loose ? rng.range(-0.12, 0.12) : 0;
+      const slatWidth = s * 0.94 - 0.05;
+      // Keep the original low tip / ground anchor of a tilted board.
+      const seatShift = (s * 1.01 - slatWidth) * 0.5 * Math.abs(Math.sin(tilt));
+      p.box(slatWidth, s * 0.14, 0.016, 0, y - seatShift, s * 0.46, {
         bevel: 0.004,
-        rz: loose ? rng.range(-0.12, 0.12) : 0,
+        rz: tilt,
         wear: 1,
       });
-      p.box(s * 1.01, s * 0.14, 0.016, 0, y, -s * 0.46, { bevel: 0.004 });
-      p.box(0.016, s * 0.14, s * 0.94, s * 0.5, y, 0, { bevel: 0.004 });
-      p.box(0.016, s * 0.14, s * 0.94, -s * 0.5, y, 0, { bevel: 0.004 });
+      p.box(s * 0.94 - 0.05, s * 0.14, 0.016, 0, y, -s * 0.46, { bevel: 0.004 });
+      p.box(0.016, s * 0.14, s * 0.86 - 0.05, s * 0.5, y, 0, { bevel: 0.004 });
+      p.box(0.016, s * 0.14, s * 0.86 - 0.05, -s * 0.5, y, 0, { bevel: 0.004 });
     }
     // corner posts
     for (const sx of [-1, 1])

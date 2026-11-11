@@ -2363,8 +2363,14 @@ function dressMapProps(d, world, theme) {
       }
       // A band around the waist and one under the lid.
       for (const y of [p.y - h * 0.45, p.y + h * 0.62]) {
-        d.box(key, p.x, y, p.z, s.x + t * 2, w * 0.8, s.z + t * 2,
-          { thin: true, masks: [0.8, 0.55, 0.25] });
+        // Four rails END at the corner posts. A full box here shared its
+        // outward faces with the posts, causing depth fighting on camera moves.
+        for (const side of [-1, 1]) {
+          d.box(key, p.x, y, p.z + side * (h + t / 2), s.x - 2 * w, w * 0.8, t,
+            { thin: true, masks: [0.8, 0.55, 0.25] });
+          d.box(key, p.x + side * (h + t / 2), y, p.z, t, w * 0.8, s.z - 2 * w,
+            { thin: true, masks: [0.8, 0.55, 0.25] });
+        }
       }
       /**
        * Stencil plate on one face, so no two crates read identically.
